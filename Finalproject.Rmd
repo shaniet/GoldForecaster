@@ -27,9 +27,11 @@ boruta.gold <- Boruta(PercChangeForc~.-Date -Average.Price -Oil -PPIJewelry, dat
 plot(boruta.gold)
 ```
 
-Create Cross Validation Folds
+Create Cross Validation Folds (Regression)
 ```{r}
-
+library(caret)
+set.seed(123)
+folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 ```
 
 
