@@ -9,11 +9,22 @@ output: pdf_document
 
 Load Data
 ```{r}
-read.csv("gold.csv")
+# Read csv
+gold <- read.csv("gold.csv", sep = ",", header = TRUE)
+
+# Omit all rows that have NA vals
+gold <- na.omit(gold)
 ```
 
+Variable Selection
 ```{r}
+# Run Boruta  algorithm on clean data
+library(Boruta)
+library(randomForest)
+boruta.gold <- Boruta(PercChangeForc~.-Date -Average.Price -Oil -PPIJewelry, data = gold, doTrace = 2, 
+                       randomForest = TRUE)
 
+plot(boruta.gold)
 ```
 
 ```{r}
