@@ -27,6 +27,7 @@ boruta.gold <- Boruta(PercChangeForc~.-Date -Average.Price -Oil -PPIJewelry, dat
 plot(boruta.gold)
 ```
 
+Create Cross Validation Folds
 ```{r}
 
 ```
