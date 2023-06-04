@@ -19,7 +19,7 @@ gold <- na.omit(gold)
 gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 
 # Hurdle rate for Binary CLassifier is set at 0.1%, so that edge cases that are
-# very close to 0% (0%:0.0999%) are classified as non-investment opportunities.
+# very close to 0% (0%:0.0999%) are classified as non-investment opportunities
 
 ```
 
