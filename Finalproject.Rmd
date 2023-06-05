@@ -220,9 +220,9 @@ opt.mtry
 
 
 
-Optimal Random Forest MSE: mtry = 1, MSE = 21.21
-  
-Bagging MSE: 25.70529
+# Optimal Random Forest MSE: mtry = 1, MSE = 21.21
+#   
+# Bagging MSE: MSE = 25.70529
 
 ```
 
