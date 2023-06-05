@@ -5,34 +5,63 @@ date: '2023-06-02'
 output: pdf_document
 ---
 
+# Introduction
+
 (We don't have to polish this RMD in terms of labels or descriptions. Final presentation will be in powerpoint. We'll still submit this as the source code though so we should still be commenting what we're doing with code) Jon
 
-Load Data
-
+# Load Data
 ```{r}
 # Read csv
 gold <- read.csv("gold.csv", sep = ",", header = TRUE)
 
-# Omit all rows that have NA vals
+# Omit all rows that have NA Values: 6 Rows: 05/31/1979 to 03/31/2023
 gold <- na.omit(gold)
 
 # Add Binary Classifier Variable
-gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
+gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0) 
 
-# Hurdle rate for Binary CLassifier is set at 0.1%, so that edge cases that are
-# very close to 0% (0%:0.0999%) are classified as non-investment opportunities
+# Check if Features Are Numeric (Returns False, So Non-Numeric Variables)
+all(sapply(gold, is.numeric))
 
-gold <- gold[,-26]
-gold <- gold[,-24]
-gold <- gold[,-2]
-gold <- gold[,-1]
-
+# Head Gold
 head(gold)
+```
+
+We converted our percent change forecast variable into a binary classifier. The hurdle rate for our binary classifier ("Binary.PercChange") is set at 0.1%, so that edge cases that are very close to 0% (0%:0.0999%) are classified as non-investment opportunities. Percent changes in gold (month over month) greater than 0.1% will be considered "buy" opportunities, with a classifier value of 1. 
+
+# Initial Analysis of Features 
+
+
+
+In order to better understand our features, we'll first look at the histograms of our features as well as the scatterplots between our features and our main response variables: monthly percent changes in gold for our regression problem and our binary classiifer for our classification problem. 
+
+### Histogram for Loops
+```{r}
+# Set Feature Space Excluding Lagged Variables and Other Miscellenous Feature 
+library(dplyr)
+gold_histograms <- gold %>% select(-c("Date","PercChangeLag1","PercChangeLag2",
+                                "PercChangeLag3", "PercChangeLag4",
+                                "PercChangeLag5","Inf.L1","Inf.L2",
+                                "Inf.L3","Inf.L4","FedFundsRateL1"))
+gold_histograms <- as.data.frame(lapply(gold_histograms, as.numeric))
+head(gold_histograms)
+
+# For Loop
+for (feature in names(gold_histograms)){
+  hist(gold_histograms[[feature]], xlab = paste0(feature), ylab = "Frequency",
+       main = paste0("Histogram of ",feature))
+}
+
+
+# feature_space <- names(gold)[!names(gold) %in% c("Date","PercChangeLag1","PercChangeLag2",
+#                                 "PercChangeLag3", "PercChangeLag4",
+#                                 "PercChangeLag5","Inf.L1","Inf.L2",
+#                                 "Inf.L3","Inf.L4","FedFundsRateL1")]
 
 ```
 
-Variable Selection
 
+# Feature Selection
 ```{r}
 # Run Boruta  algorithm on clean data
 library(Boruta)
