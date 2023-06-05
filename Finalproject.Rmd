@@ -126,16 +126,30 @@ head(gold.c)
 
 # Feature Selection: Boruta Algorithm
 ```{r, echo = FALSE}
-# Run Boruta  algorithm on clean data
+# Run Boruta algorithm on clean data
 library(Boruta)
 library(randomForest)
+
+# Regression Problem
 boruta.gold <- Boruta(PercChangeForc~., data = gold.r, doTrace = 2, 
-                       randomForest = TRUE)
+                       randomForest = TRUE) 
+
+# Classification Problem
+boruta.c.features <- gold.c[,!colnames(gold.c) %in% "Binary.PercChange"] # Features only
+boruta.gold.c <- Boruta(boruta.c.features, as.factor(gold.c$Binary.PercChange))
 ```
 
 ### Plot Boruta Algorithm
 ```{r, echo = FALSE}
-plot(boruta.gold, main = "Boruta Algorithm for Gold Pricing Algorithm")
+# Plots
+plot(boruta.gold, main = "Boruta Algorithm for Gold Pricing Regression Problem",
+     las = 3)
+plot(boruta.gold.c, main = "Boruta Algorithm for Gold Pricing Classification Problem",
+     las = 3)
+
+# Boruta Selections
+boruta.gold$finalDecision # Regression
+boruta.gold.c$finalDecision # Classification
 ```
 
 # Create Five Fold Cross Validation
