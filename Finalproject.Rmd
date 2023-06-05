@@ -24,12 +24,12 @@ gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 all(sapply(gold, is.numeric))
 
 
-gold <- gold[,-26]
-gold <- gold[,-24]
-gold <- gold[,-2]
-gold <- gold[,-1]
+# gold <- gold[,-26]
+# gold <- gold[,-24]
+# gold <- gold[,-2]
+# gold <- gold[,-1]
 
-head(gold)
+# head(gold)
 # Head Gold
 head(gold)
 ```
@@ -38,14 +38,15 @@ We converted our percent change forecast variable into a binary classifier. The 
 
 # Initial Analysis of Features 
 
-
-
 In order to better understand our features, we'll first look at the histograms of our features as well as the scatterplots between our features and our main response variables: monthly percent changes in gold for our regression problem and our binary classiifer for our classification problem. 
 
 ### Histogram for Loops
 ```{r}
 # Set Feature Space Excluding Lagged Variables and Other Miscellenous Feature 
 library(dplyr)
+library(ggplot2)
+library(stats)
+library(reshape2)
 gold_histograms <- gold %>% select(-c("Date","PercChangeLag1","PercChangeLag2",
                                 "PercChangeLag3", "PercChangeLag4",
                                 "PercChangeLag5","Inf.L1","Inf.L2",
@@ -63,50 +64,90 @@ for (feature in names(gold_histograms)){
 for (feature in names(gold_histograms)){
   boxplot(gold_histograms[[feature]], ylab = paste0("Value of ",feature),
        main = paste0("Boxplot of ",feature))
-} 
-
-# For Loop for Scatter Plots
-for (feature in names(gold_histograms)[!names(gold_histograms) %in% c("Average.Price,
-                                                                     PercChangeForc",
-                                                                     "Binary.PercChange")]){
-  
 }
-
-# feature_space <- names(gold)[!names(gold) %in% c("Date","PercChangeLag1","PercChangeLag2",
-#                                 "PercChangeLag3", "PercChangeLag4",
-#                                 "PercChangeLag5","Inf.L1","Inf.L2",
-#                                 "Inf.L3","Inf.L4","FedFundsRateL1")]
-
 ```
 
+The boxplots and histograms show that our variables are on average normally distributed. There are outliers in some of our features, such as percent changes in monthly prices and changes in bank reserves. However, we believe these outliers are still essential in predicting the movement of gold prices. 
 
+### Correlation Values
+```{r} 
+# Data Clean for Scatter Plots 
+set.seed(490782)
+gold_cor <- gold %>% select(-c("Date","Average.Price")) 
+gold_cor <- as.data.frame(lapply(gold_cor, as.numeric))
+head(gold_cor)
 
-# Feature Selection
+# For Loop for Scatter Plots 
+for (feature in names(gold_cor)[!names(gold_cor) %in% c("Binary.PercChange")]){
+  plot(gold_cor[[feature]], gold_cor$PercChangeForc, type = "p",
+       xlab = paste(feature), ylab = "Monthly Forecasted Change in Gold Prices",
+       main = paste0("Monthly Changes in Gold Prices Against ",feature)) 
+  line <- lm(gold_cor$PercChangeForc ~ gold_cor[[feature]])
+  abline(line, col = "blue")
+}
+
+# Heat Map
+cor_matrix <- round(cor(gold_cor),2)
+melted_cor_gold <- melt(cor_matrix)
+ggplot(data = melted_cor_gold, aes(x = Var1, y = Var2, fill = value))+
+  geom_tile()+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Our scatterplots and heat maps show that there are some pockets of correlation between features in our data set. Looking at our main response variables (PercChangeForc & Binary.PercChange), there are no visibly strong correlations between them and our various features. However, we believe a combination and enhancement of these features through the various algorithms we'll be looking at will allow us to best predict both response variables - in a regression and classification setting. 
+
+# Initial Data Cleaning
 ```{r}
+# Gold Data for Regression Problem:
+head(gold)
+gold.r <- gold %>% select(-c("Date","Average.Price","Binary.PercChange","Oil",
+                             "PPIJewelry"))
+
+# Gold Data for Classification Problem:
+gold.c <- gold %>% select(-c("Date","Average.Price","PercChangeForc","Oil",
+                             "PPIJewelry")) 
+
+# Convert Data to Numeric
+gold.r <- as.data.frame(lapply(gold.r, as.numeric)) 
+gold.c <- as.data.frame(lapply(gold.c, as.numeric))
+
+# Data Check & Numeric Check
+all(sapply(gold.r, is.numeric))
+all(sapply(gold.c, is.numeric))
+head(gold.r)
+head(gold.c)
+```
+
+# Feature Selection: Boruta Algorithm
+```{r, echo = FALSE}
 # Run Boruta  algorithm on clean data
 library(Boruta)
 library(randomForest)
-boruta.gold <- Boruta(PercChangeForc~. -Binary.PercChange, data = gold, doTrace = 2, 
+boruta.gold <- Boruta(PercChangeForc~., data = gold.r, doTrace = 2, 
                        randomForest = TRUE)
-
-plot(boruta.gold)
-
 ```
 
-Create Cross Validation Folds (Regression)
+### Plot Boruta Algorithm
+```{r, echo = FALSE}
+plot(boruta.gold, main = "Boruta Algorithm for Gold Pricing Algorithm")
+```
 
+# Create Five Fold Cross Validation
 ```{r}
 library(caret)
 set.seed(123)
-folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
+folds <- createFolds(gold.r$PercChangeForc, k = 5, returnTrain = TRUE)
 ```
 
 # Regression
 
-### OLS
+### OLS (Jon)
 ```{r}
+<<<<<<< HEAD
+lin.reg <- lm(PercChangeForc~., data = gold_histograms)
+=======
 # Run linear regression
 lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
+>>>>>>> 1bc783392c7d0973c5472cdcd1ce6416f319662c
 summary(lin.reg)
 
 # Create empty vector
@@ -136,12 +177,16 @@ lin.reg.mse
 
 ```
 
-### Random Forest + Bagging
+### Ridge & Lasso (Shanie)
+
+### Principal Components Regression (Arif)
+
+### Random Forest + Bagging (Jon)
 ```{r}
 
 ```
 
-### Boosting
+### Boosting (Jon)
 ```{r}
 
 ```
@@ -155,12 +200,45 @@ lin.reg.mse
 
 --------------------------------------------------------------------------------
 
-# Classification
+# Classificatio Problem
 
-### Support Vector Machine
+### LDA (Shanie)
 ```{r}
 
 ```
+
+### QDA (Shanie)
+```{r}
+
+```
+
+### KNN (Arif)
+```{r}
+
+```
+
+### Random Forest (Arif)
+```{r}
+
+```
+
+### Bagging (Arif)
+```{r}
+
+```
+
+### Boosting (Arif)
+```{r}
+
+```
+
+
+### Support Vector Machine (Arif)
+```{r}
+
+```
+
+
 
 ### Neural Network
 ```{r}
