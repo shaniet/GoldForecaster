@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Shanie Talor"
+author: "Shanie Talor, Arif Abd Aziz, Jon Girolamo"
 date: '2023-06-02'
 output: pdf_document
 ---
@@ -8,6 +8,7 @@ output: pdf_document
 (We don't have to polish this RMD in terms of labels or descriptions. Final presentation will be in powerpoint. We'll still submit this as the source code though so we should still be commenting what we're doing with code) Jon
 
 Load Data
+
 ```{r}
 # Read csv
 gold <- read.csv("gold.csv", sep = ",", header = TRUE)
@@ -24,6 +25,7 @@ gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 ```
 
 Variable Selection
+
 ```{r}
 # Run Boruta  algorithm on clean data
 library(Boruta)
@@ -36,10 +38,60 @@ plot(boruta.gold)
 ```
 
 Create Cross Validation Folds (Regression)
+
 ```{r}
 library(caret)
 set.seed(123)
 folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 ```
+
+```{r}
+
+```
+
+# Regression
+
+### OLS
+```{r}
+
+```
+
+### Random Forest + Bagging
+```{r}
+
+```
+
+### Boosting
+```{r}
+
+```
+
+
+### Neural Network
+```{r}
+
+```
+
+
+--------------------------------------------------------------------------------
+
+# Classification
+
+### Support Vector Machine
+```{r}
+
+```
+
+### Neural Network
+```{r}
+
+```
+
+
+
+
+
+
+
 
 
