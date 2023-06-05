@@ -105,8 +105,12 @@ folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 
 ### OLS
 ```{r}
+# Run linear regression
 lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
 summary(lin.reg)
+
+
+
 ```
 
 ### Random Forest + Bagging
