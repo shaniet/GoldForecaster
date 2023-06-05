@@ -14,11 +14,18 @@ output: pdf_document
 # Read csv
 gold <- read.csv("gold.csv", sep = ",", header = TRUE)
 
+sentiment <- read.csv("sentiment.csv", sep = ",", header = TRUE)
+sentiment <- sentiment[-c(1:9, 543, 544), ]
+
+gold$sentiment <- sentiment$sentiment
+
+head(gold)
+
 # Omit all rows that have NA Values: 6 Rows: 05/31/1979 to 03/31/2023
 gold <- na.omit(gold)
 
 # Add Binary Classifier Variable
-gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0) 
+gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 
 # Check if Features Are Numeric (Returns False, So Non-Numeric Variables)
 all(sapply(gold, is.numeric))
