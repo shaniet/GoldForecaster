@@ -142,9 +142,9 @@ folds <- createFolds(gold.r$PercChangeForc, k = 5, returnTrain = TRUE)
 
 ### OLS (Jon)
 ```{r}
-
+set.seed(123)
 # Run linear regression
-lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
+lin.reg <- lm(PercChangeForc~., data = gold.r)
 
 summary(lin.reg)
 
@@ -154,13 +154,13 @@ lin.reg.mse <- vector()
 # CV loop for linear regression
 for(i in 1:5){
   
-  training.i <- folds[[1]]
-  testing.i <- setdiff(1:length(gold$PercChangeForc), training.i)
-  gold.test <- gold[testing.i,]
-  gold.train <- gold[training.i,]
+  training.i <- folds[[i]]
+  testing.i <- setdiff(1:length(gold.r$PercChangeForc), training.i)
+  gold.test <- gold.r[testing.i,]
+  gold.train <- gold.r[training.i,]
 
   # Model
-  lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold.train)
+  lin.reg <- lm(PercChangeForc~., data = gold.train)
   
   # Model pred
   lin.reg.pred <- predict(lin.reg, newdata = gold.test)
@@ -171,7 +171,7 @@ for(i in 1:5){
 }
 
 lin.reg.mse
-
+mean(lin.reg.mse)
 
 ```
 
@@ -181,11 +181,72 @@ lin.reg.mse
 
 ### Random Forest + Bagging (Jon)
 ```{r}
+library(gbm)
+set.seed(123)
 
 ```
 
 ### Boosting (Jon)
 ```{r}
+set.seed(123)
+library(caret)
+library(gbm)
+
+# # Train Function with Grid of Parameters
+# control <- trainControl(method = "cv", number = 5)
+# 
+# # Create Parameter Grid
+# parameters.r <- expand.grid(n.trees = c(100,200,500,1000,1500),
+#                           interaction.depth = c(5,10,15,20,50,100),
+#                           shrinkage = c(0,0.001,0.005,0.01,0.03,0.05),
+#                           n.minobsinnode = c(5))
+# 
+# # Fit A Boosting (GBM) Model 
+# features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
+# 
+# trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc, 
+#                            method = "gbm", trControl = control, 
+#                            tuneGrid = parameters.r)
+# 
+# trained.gbm.fit.r$bestTune
+
+# Output:
+
+# n.trees = 100	
+# 
+# interaction.depth = 5
+# 
+# shrinkage = 0.01
+# 
+# n.minobsinnode = 5
+
+
+
+
+# Run Boosted Model with optimal Parameters to calculate CV MSE:
+
+boost.mse <- vector()
+
+for (i in 1:5){
+
+  training.i <- folds[[i]]
+  testing.i <- setdiff(1:length(gold.r$PercChangeForc), training.i)
+  gold.test <- gold.r[testing.i,]
+  gold.train <- gold.r[training.i,]
+  
+  gold.r.boost <- gbm(PercChangeForc ~ ., data = gold.train, distribution = "gaussian", 
+                   n.trees = 100, interaction.depth = 5,
+                   shrinkage = 0.01)
+
+  # Made preds
+  yhat <- predict(gold.r.boost, newdata = gold.test, n.trees = 100)
+
+  # MSE calc
+  boost.mse[i] <- mean((yhat - gold.test$PercChangeForc)^2)
+}
+
+boost.mse
+mean(boost.mse)
 
 ```
 
