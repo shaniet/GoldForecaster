@@ -22,6 +22,13 @@ gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 # Hurdle rate for Binary CLassifier is set at 0.1%, so that edge cases that are
 # very close to 0% (0%:0.0999%) are classified as non-investment opportunities
 
+gold <- gold[,-26]
+gold <- gold[,-24]
+gold <- gold[,-2]
+gold <- gold[,-1]
+
+head(gold)
+
 ```
 
 Variable Selection
@@ -30,7 +37,7 @@ Variable Selection
 # Run Boruta  algorithm on clean data
 library(Boruta)
 library(randomForest)
-boruta.gold <- Boruta(PercChangeForc~.-Date -Average.Price -Oil -PPIJewelry -Binary.PercChange, data = gold, doTrace = 2, 
+boruta.gold <- Boruta(PercChangeForc~. -Binary.PercChange, data = gold, doTrace = 2, 
                        randomForest = TRUE)
 
 plot(boruta.gold)
@@ -45,15 +52,12 @@ set.seed(123)
 folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 ```
 
-```{r}
-
-```
-
 # Regression
 
 ### OLS
 ```{r}
-
+lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
+summary(lin.reg)
 ```
 
 ### Random Forest + Bagging
