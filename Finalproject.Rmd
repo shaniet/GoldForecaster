@@ -276,14 +276,14 @@ mean(boost.mse)
 # Optimize Model for Best K Parameters Using Train Function 
 library(class)
 set.seed(75849)
-knn_ctrl <- trainControl(method = "cv", number = 5) # Five Fold CV
+ctrl <- trainControl(method = "cv", number = 5) # Five Fold CV
 
 # Parameter Grid Search
 k_values <- expand.grid(k = 1:100)
 
 # Train the Model on Grid Set Above - Parameter Grid Search
 knn_optimize <- train(as.factor(Binary.PercChange) ~., data = gold.c, 
-                      method = "knn", trControl = knn_ctrl, tuneGrid = k_values)
+                      method = "knn", trControl = ctrl, tuneGrid = k_values)
 knn_optimize$bestTune
 
 # Optimize Models (More Manually)
@@ -331,18 +331,87 @@ knn_min_rn <- which.min(knn_perf_df$`Error Means`)
 knn_perf_df[knn_min_rn,]
 ```
 
-Both our train hyper-grid search function and manual grid search show that the optimal number for K parameters (the number of neighboring observations) is 13. In other words, 13 observations closest to our observation of interest will be checked to see whether they identify with class 1 (above 0.1% gold price growth) or class 0 (below 0.1% gold price growth). The majority of these 13 classes will be assigned to the observation of interest. Using this algorithm, we get a mis-classification error (on average) of 41.33%. This is below 50% and is considered better than random chance. Our manual fit is also similar to running an optimized KNN model on five fold cross validation, so we don't have to run that again. The mis-classification error of 41.33%, thus, is a comparable number to other approaches (as we run five fold cross validation for them). 
+Both our train hyper-grid search function and manual grid search show that the optimal number for K parameters (the number of neighboring observations) is 13. In other words, 13 observations closest to our observation of interest will be checked to see whether they identify with class 1 (above 0.1% gold price growth) or class 0 (below 0.1% gold price growth). The majority of these 13 classes will be assigned to the observation of interest. Using this algorithm, we get a mis-classification error (on average) of **41.33%**. This is below 50% and is considered better than random chance. Our manual fit is also similar to running an optimized KNN model on five fold cross validation, so we don't have to run that again. The mis-classification error of 41.33%, thus, is a comparable number to other approaches (as we run five fold cross validation for them). 
 
-
-### Random Forest (Arif)
+### Random Forest & Bagging (Arif)
 ```{r}
+# Optimize Random Forest Model for Parameters Using Train Function
+library(tree)
+set.seed(75849)
+ctrl <- trainControl(method = "cv", number = 5) 
 
+# Set Grid of Parameters for Random Forests
+rf.c.grid <- expand.grid(mtry = 1:22, ntree = c(100,200,300,400,500,1000,1500))
+nrow(rf.c.grid)
+
+# Set Up Data Frame to Input Values from Manual Grid Search
+rf.perf.df <- data.frame(rf.c.grid[,1]) # First Column is mtry
+rf.perf.df <- cbind(rf.perf.df, rf.c.grid[,2]) # Second Column is number of trees
+
+# Manual For Loop Grid Search Since Train Function Refuses to Work
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,] 
+  
+  # Set Up Empty Vector to Input Misclassificaiton Errors for Each Fold
+  rf_error_vec <- vector()
+  
+  # Now Set Up Grid Search For Loop Using rf.perf.df Parameter Grid
+  for (j in 1:nrow(rf.perf.df)){ # Will Havet to Change Just Testing
+    # Fit the Model, Mtry is the first column of grid, Ntrees is second column
+    rf.model <- randomForest(as.factor(Binary.PercChange) ~.,
+                             data = gold.c.train, mtry = rf.perf.df[j,1],
+                             ntree = rf.perf.df[j,2])
+    
+    # Predict on Testing Set, Response is a Class Variable
+    rf.predictions <- predict(rf.model, newdata = gold.c.test, type = "class")
+    
+    # Calculate Accuracy Score
+    rf.accuracy <- mean(rf.predictions == gold.c.test$Binary.PercChange)
+    
+    # Calculate Error Scores and Input into Vector
+    rf.error <- 1-rf.accuracy
+    rf_error_vec[j] <- rf.error
+  }
+  
+  # Put Error Vector into RF Data Frame to Measure Error Scores
+  rf.perf.df <- cbind(rf.perf.df, rf_error_vec)
+  
+  # Run This Back Up Again for Five Folds, Data Frame Has Five Columns
+}
+
+# Clean Up Data Frame
+rf.perf.df$Means <- rowMeans(rf.perf.df[,-c(1,2)]) 
+colnames(rf.perf.df) <- c("Mtry Parameters", "Number of Trees", "Fold 1", "Fold 2",
+                          "Fold 3", "Fold 4", "Fold 5", "Error Means")
+print(rf.perf.df) 
+
+# Find Bagging Misclassification Errors
+rf.perf.df[rf.perf.df$`Mtry Parameters` == 22,]
+
+# Find Minimum Misclassification Error
+rf_min_rn <- which.min(rf.perf.df$`Error Means`)
+rf.perf.df[rf_min_rn,]
+
+# NOT NEEDED ####
+# nrow(rf.perf.df)
+# # Perform Grid Search
+# rf.opt.model <- train(as.factor(Binary.PercChange)~.,
+#                       data = gold.c, method = "rf", 
+#                     trControl = ctrl, 
+#                     tuneGrid = rf.c.grid)
+# 
+# #Fit Classification Tree
+# class.tree.test <- tree(as.factor(Binary.PercChange)~., gold.c)
+# summary(class.tree.test)
+# 
+# plot(class.tree.test)
+# text(class.tree.test, pretty=0, cex=0.6)
 ```
 
-### Bagging (Arif)
-```{r}
-
-```
+Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 9 and number of trees = 300) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **44.76%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.57%-46.10*%**. The bagging algorithms were not optimal in our classification setting. 
 
 ### Boosting (Arif)
 ```{r}
