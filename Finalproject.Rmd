@@ -60,10 +60,16 @@ for (feature in names(gold_histograms)){
 }
 
 # For Loop for Box Plots
-par(mfrow = c(10,2))
 for (feature in names(gold_histograms)){
   boxplot(gold_histograms[[feature]], ylab = paste0("Value of ",feature),
        main = paste0("Boxplot of ",feature))
+} 
+
+# For Loop for Scatter Plots
+for (feature in names(gold_histograms)[!names(gold_histograms) %in% c("Average.Price,
+                                                                     PercChangeForc",
+                                                                     "Binary.PercChange")]){
+  
 }
 
 # feature_space <- names(gold)[!names(gold) %in% c("Date","PercChangeLag1","PercChangeLag2",
