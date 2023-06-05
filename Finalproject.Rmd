@@ -24,12 +24,12 @@ gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 all(sapply(gold, is.numeric))
 
 
-gold <- gold[,-26]
-gold <- gold[,-24]
-gold <- gold[,-2]
-gold <- gold[,-1]
+# gold <- gold[,-26]
+# gold <- gold[,-24]
+# gold <- gold[,-2]
+# gold <- gold[,-1]
 
-head(gold)
+# head(gold)
 # Head Gold
 head(gold)
 ```
@@ -90,15 +90,34 @@ for (feature in names(gold_cor)[!names(gold_cor) %in% c("Binary.PercChange")]){
 cor_matrix <- round(cor(gold_cor),2)
 melted_cor_gold <- melt(cor_matrix)
 ggplot(data = melted_cor_gold, aes(x = Var1, y = Var2, fill = value))+
-  geom_tile()
+  geom_tile()+theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+Our scatterplots and heat maps show that there are some pockets of correlation between features in our data set. Looking at our main response variables (PercChangeForc & Binary.PercChange), there are no visibly strong correlations between them and our various features. However, we believe a combination and enhancement of these features through the various algorithms we'll be looking at will allow us to best predict both response variables - in a regression and classification setting. 
 
 # Initial Data Cleaning
 ```{r}
+# Gold Data for Regression Problem:
+head(gold)
+gold.r <- gold %>% select(-c("Date","Average.Price","Binary.PercChange","Oil",
+                             "PPIJewelry"))
 
+# Gold Data for Classification Problem:
+gold.c <- gold %>% select(-c("Date","Average.Price","PercChangeForc","Oil",
+                             "PPIJewelry")) 
+
+# Convert Data to Numeric
+gold.r <- as.data.frame(lapply(gold.r, as.numeric)) 
+gold.c <- as.data.frame(lapply(gold.c, as.numeric))
+
+# Data Check & Numeric Check
+all(sapply(gold.r, is.numeric))
+all(sapply(gold.c, is.numeric))
+head(gold.r)
+head(gold.c)
 ```
 
-# Feature Selection
+# Feature Selection (Redo)
 ```{r}
 # Run Boruta  algorithm on clean data
 library(Boruta)
@@ -110,8 +129,8 @@ plot(boruta.gold)
 
 ```
 
-Create Cross Validation Folds (Regression)
 
+# Create Five Fold Cross Validation
 ```{r}
 library(caret)
 set.seed(123)
@@ -120,7 +139,7 @@ folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 
 # Regression
 
-### OLS
+### OLS (Jon)
 ```{r}
 <<<<<<< HEAD
 lin.reg <- lm(PercChangeForc~., data = gold_histograms)
@@ -133,6 +152,10 @@ summary(lin.reg)
 
 
 ```
+
+### Ridge & Lasso (Shanie)
+
+### Principal Components Regression (Arif)
 
 ### Random Forest + Bagging
 ```{r}
@@ -153,12 +176,45 @@ summary(lin.reg)
 
 --------------------------------------------------------------------------------
 
-# Classification
+# Classificatio Problem
 
-### Support Vector Machine
+### LDA (Shanie)
 ```{r}
 
 ```
+
+### QDA (Shanie)
+```{r}
+
+```
+
+### KNN (Arif)
+```{r}
+
+```
+
+### Random Forest (Arif)
+```{r}
+
+```
+
+### Bagging (Arif)
+```{r}
+
+```
+
+### Boosting (Arif)
+```{r}
+
+```
+
+
+### Support Vector Machine (Arif)
+```{r}
+
+```
+
+
 
 ### Neural Network
 ```{r}
