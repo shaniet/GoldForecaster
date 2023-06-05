@@ -184,6 +184,46 @@ mean(lin.reg.mse)
 library(gbm)
 set.seed(123)
 
+mtry.vals <- seq(1, 22, by = 1)
+
+bag.mse <- vector()
+mod.df.r <- data.frame(mtry.vals)
+
+for (i in 1:5){
+  
+  training.i <- folds[[i]]
+  testing.i <- setdiff(1:length(gold.r$PercChangeForc), training.i)
+  gold.test <- gold.r[testing.i,]
+  gold.train <- gold.r[training.i,]
+  
+  
+  for (j in seq_along(mtry.vals)){
+
+  mod <- randomForest(PercChangeForc~., data = gold.train, mtry = mtry.vals[j], importance = TRUE)
+
+  mod.pred <- predict(mod, newdata = gold.test)
+
+  bag.mse[j] <- mean((mod.pred-gold.test$PercChangeForc)^2)
+  
+  }
+  # Append our MSE Vector into Our Data Frame (Memory)
+  mod.df.r <- cbind(mod.df.r, bag.mse)
+  
+}
+mod.df.r
+
+mod.df.r$mean_mse <- rowMeans(mod.df.r[, -1])
+
+# Optimal bagging mtry
+opt.mtry <- mod.df.r[which.min(mod.df.r$mean_mse), ]
+opt.mtry
+
+
+
+Optimal Random Forest MSE: mtry = 1, MSE = 21.21
+  
+Bagging MSE: 25.70529
+
 ```
 
 ### Boosting (Jon)
