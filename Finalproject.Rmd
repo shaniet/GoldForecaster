@@ -23,6 +23,13 @@ gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 # Check if Features Are Numeric (Returns False, So Non-Numeric Variables)
 all(sapply(gold, is.numeric))
 
+
+gold <- gold[,-26]
+gold <- gold[,-24]
+gold <- gold[,-2]
+gold <- gold[,-1]
+
+head(gold)
 # Head Gold
 head(gold)
 ```
@@ -30,6 +37,8 @@ head(gold)
 We converted our percent change forecast variable into a binary classifier. The hurdle rate for our binary classifier ("Binary.PercChange") is set at 0.1%, so that edge cases that are very close to 0% (0%:0.0999%) are classified as non-investment opportunities. Percent changes in gold (month over month) greater than 0.1% will be considered "buy" opportunities, with a classifier value of 1. 
 
 # Initial Analysis of Features 
+
+
 
 In order to better understand our features, we'll first look at the histograms of our features as well as the scatterplots between our features and our main response variables: monthly percent changes in gold for our regression problem and our binary classiifer for our classification problem. 
 
@@ -68,6 +77,7 @@ for (feature in names(gold_histograms)[!names(gold_histograms) %in% c("Average.P
 #                                 "PercChangeLag3", "PercChangeLag4",
 #                                 "PercChangeLag5","Inf.L1","Inf.L2",
 #                                 "Inf.L3","Inf.L4","FedFundsRateL1")]
+
 ```
 
 
@@ -77,7 +87,7 @@ for (feature in names(gold_histograms)[!names(gold_histograms) %in% c("Average.P
 # Run Boruta  algorithm on clean data
 library(Boruta)
 library(randomForest)
-boruta.gold <- Boruta(PercChangeForc~.-Date -Average.Price -Oil -PPIJewelry -Binary.PercChange, data = gold, doTrace = 2, 
+boruta.gold <- Boruta(PercChangeForc~. -Binary.PercChange, data = gold, doTrace = 2, 
                        randomForest = TRUE)
 
 plot(boruta.gold)
@@ -92,15 +102,12 @@ set.seed(123)
 folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 ```
 
-```{r}
-
-```
-
 # Regression
 
 ### OLS
 ```{r}
-
+lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
+summary(lin.reg)
 ```
 
 ### Random Forest + Bagging
