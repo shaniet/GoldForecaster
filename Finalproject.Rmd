@@ -190,8 +190,16 @@ mean(lin.reg.mse)
 ```
 
 ### Ridge & Lasso (Shanie)
+```{r}
+
+```
+
 
 ### Principal Components Regression (Arif)
+```{r}
+
+```
+
 
 ### Random Forest + Bagging (Jon)
 ```{r}
@@ -313,7 +321,7 @@ mean(boost.mse)
 
 --------------------------------------------------------------------------------
 
-# Classificatio Problem
+# Classification Problem
 
 ### LDA (Shanie)
 ```{r}
@@ -469,9 +477,32 @@ Since our train control function was not working, we decided to run a manual par
 
 ### Boosting (Arif)
 ```{r}
+# Conduct Parameter Search for Gradient Boosting Model Using Train Function
+set.seed(75849)
+ctrl <- trainControl(method = "cv", number = 5) # Five Fold CV
 
+parameters.gbm.c <- expand.grid(n.trees = c(100,200,500,1000,1500),
+                                interaction.depth = c(5,10,15,20,50,100), 
+                                shrinkage = c(0.001,0.01,0.05,0.075,0.1),
+                                n.minobsinnode = c(5,10,15,20))
+
+
+
+# # Create Parameter Grid
+# parameters.r <- expand.grid(n.trees = c(100,200,500,1000,1500),
+#                           interaction.depth = c(5,10,15,20,50,100),
+#                           shrinkage = c(0,0.001,0.005,0.01,0.03,0.05),
+#                           n.minobsinnode = c(5))
+# 
+# # Fit A Boosting (GBM) Model 
+# features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
+# 
+# trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc, 
+#                            method = "gbm", trControl = control, 
+#                            tuneGrid = parameters.r)
+# 
+# trained.gbm.fit.r$bestTune
 ```
-
 
 ### Support Vector Machine (Arif)
 ```{r}
