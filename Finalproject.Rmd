@@ -51,7 +51,7 @@ for (feature in names(gold_histograms)){
 }
 
 # For Loop for Box Plots
-par(mfrow = c(9,2))
+par(mfrow = c(10,2))
 for (feature in names(gold_histograms)){
   boxplot(gold_histograms[[feature]], ylab = paste0("Value of ",feature),
        main = paste0("Boxplot of ",feature))
