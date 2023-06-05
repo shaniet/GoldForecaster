@@ -117,24 +117,25 @@ head(gold.r)
 head(gold.c)
 ```
 
-# Feature Selection (Redo)
-```{r}
+# Feature Selection: Boruta Algorithm
+```{r, echo = FALSE}
 # Run Boruta  algorithm on clean data
 library(Boruta)
 library(randomForest)
-boruta.gold <- Boruta(PercChangeForc~. -Binary.PercChange, data = gold, doTrace = 2, 
+boruta.gold <- Boruta(PercChangeForc~., data = gold.r, doTrace = 2, 
                        randomForest = TRUE)
-
-plot(boruta.gold)
-
 ```
 
+### Plot Boruta Algorithm
+```{r, echo = FALSE}
+plot(boruta.gold, main = "Boruta Algorithm for Gold Pricing Algorithm")
+```
 
 # Create Five Fold Cross Validation
 ```{r}
 library(caret)
 set.seed(123)
-folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
+folds <- createFolds(gold.r$PercChangeForc, k = 5, returnTrain = TRUE)
 ```
 
 # Regression
