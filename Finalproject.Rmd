@@ -109,6 +109,29 @@ folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
 summary(lin.reg)
 
+# Create empty vector
+lin.reg.mse <- vector()
+
+# CV loop for linear regression
+for(i in 1:5){
+  
+  training.i <- folds[[1]]
+  testing.i <- setdiff(1:length(gold$PercChangeForc), training.i)
+  gold.test <- gold[testing.i,]
+  gold.train <- gold[training.i,]
+
+  # Model
+  lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold.train)
+  
+  # Model pred
+  lin.reg.pred <- predict(lin.reg, newdata = gold.test)
+  
+  # Store MSE vals
+  lin.reg.mse[i] <- mean((lin.reg.pred-gold.test$PercChangeForc)^2)
+  
+}
+
+lin.reg.mse
 
 
 ```
