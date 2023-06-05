@@ -158,12 +158,12 @@ summary(lin.reg)
 
 ### Principal Components Regression (Arif)
 
-### Random Forest + Bagging
+### Random Forest + Bagging (Jon)
 ```{r}
 
 ```
 
-### Boosting
+### Boosting (Jon)
 ```{r}
 
 ```
