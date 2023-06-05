@@ -38,14 +38,16 @@ We converted our percent change forecast variable into a binary classifier. The 
 
 # Initial Analysis of Features 
 
-
-
 In order to better understand our features, we'll first look at the histograms of our features as well as the scatterplots between our features and our main response variables: monthly percent changes in gold for our regression problem and our binary classiifer for our classification problem. 
 
 ### Histogram for Loops
 ```{r}
 # Set Feature Space Excluding Lagged Variables and Other Miscellenous Feature 
 library(dplyr)
+library(ggplot2)
+library(stats)
+library(reshape)
+library(reshape2)
 gold_histograms <- gold %>% select(-c("Date","PercChangeLag1","PercChangeLag2",
                                 "PercChangeLag3", "PercChangeLag4",
                                 "PercChangeLag5","Inf.L1","Inf.L2",
@@ -63,24 +65,42 @@ for (feature in names(gold_histograms)){
 for (feature in names(gold_histograms)){
   boxplot(gold_histograms[[feature]], ylab = paste0("Value of ",feature),
        main = paste0("Boxplot of ",feature))
-} 
-
-# For Loop for Scatter Plots
-for (feature in names(gold_histograms)[!names(gold_histograms) %in% c("Average.Price,
-                                                                     PercChangeForc",
-                                                                     "Binary.PercChange")]){
-  plot()
-  
 }
-
-# feature_space <- names(gold)[!names(gold) %in% c("Date","PercChangeLag1","PercChangeLag2",
-#                                 "PercChangeLag3", "PercChangeLag4",
-#                                 "PercChangeLag5","Inf.L1","Inf.L2",
-#                                 "Inf.L3","Inf.L4","FedFundsRateL1")]
-
 ```
 
+The boxplots and histograms show that our variables are on average normally distributed. There are outliers in some of our features, such as percent changes in monthly prices and changes in bank reserves. However, we believe these outliers are still essential in predicting the movement of gold prices. 
 
+### Correlation Values
+```{r} 
+# Data Clean for Scatter Plots 
+set.seed(490782)
+gold_cor <- gold %>% select(-c("Date","Average.Price")) 
+gold_cor <- as.data.frame(lapply(gold_cor, as.numeric))
+head(gold_cor)
+
+# For Loop for Scatter Plots 
+for (feature in names(gold_cor)[!names(gold_cor) %in% c("Binary.PercChange")]){
+  plot(gold_cor[[feature]], gold_cor$PercChangeForc, type = "p",
+       xlab = paste(feature), ylab = "Monthly Forecasted Change in Gold Prices",
+       main = paste0("Monthly Changes in Gold Prices Against ",feature)) 
+  line <- lm(gold_cor$PercChangeForc ~ gold_cor[[feature]])
+  abline(line, col = "blue")
+}
+
+# Heat Map
+cor_matrix <- round(cor(gold_cor),2)
+melted_cor_gold <- melt(cor_matrix)
+ggplot(data = melted_cor_gold, aes(x = Var1, y = Var2, fill = value))+
+  geom_tile()
+
+heatmap(matrix(gold_histograms), col = heat.colors(256), scale = "none")
+head(gold_cor)
+```
+
+# Initial Data Cleaning
+```{r}
+
+```
 
 # Feature Selection
 ```{r}
@@ -106,7 +126,7 @@ folds <- createFolds(gold$PercChangeForc, k = 5, returnTrain = TRUE)
 
 ### OLS
 ```{r}
-lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
+lin.reg <- lm(PercChangeForc~., data = gold_histograms)
 summary(lin.reg)
 ```
 
