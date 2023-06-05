@@ -46,7 +46,6 @@ In order to better understand our features, we'll first look at the histograms o
 library(dplyr)
 library(ggplot2)
 library(stats)
-library(reshape)
 library(reshape2)
 gold_histograms <- gold %>% select(-c("Date","PercChangeLag1","PercChangeLag2",
                                 "PercChangeLag3", "PercChangeLag4",
@@ -92,9 +91,6 @@ cor_matrix <- round(cor(gold_cor),2)
 melted_cor_gold <- melt(cor_matrix)
 ggplot(data = melted_cor_gold, aes(x = Var1, y = Var2, fill = value))+
   geom_tile()
-
-heatmap(matrix(gold_histograms), col = heat.colors(256), scale = "none")
-head(gold_cor)
 ```
 
 # Initial Data Cleaning
