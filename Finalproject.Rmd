@@ -44,18 +44,25 @@ gold_histograms <- gold %>% select(-c("Date","PercChangeLag1","PercChangeLag2",
 gold_histograms <- as.data.frame(lapply(gold_histograms, as.numeric))
 head(gold_histograms)
 
-# For Loop
+# For Loop for Histograms
 for (feature in names(gold_histograms)){
   hist(gold_histograms[[feature]], xlab = paste0(feature), ylab = "Frequency",
        main = paste0("Histogram of ",feature))
 }
 
+# For Loop for Box Plots
+par(mfrow = c(9,2))
+for (feature in names(gold_histograms)){
+  boxplot(gold_histograms[[feature]], ylab = paste0("Value of ",feature),
+       main = paste0("Boxplot of ",feature))
+}
 
 # feature_space <- names(gold)[!names(gold) %in% c("Date","PercChangeLag1","PercChangeLag2",
 #                                 "PercChangeLag3", "PercChangeLag4",
 #                                 "PercChangeLag5","Inf.L1","Inf.L2",
 #                                 "Inf.L3","Inf.L4","FedFundsRateL1")]
 ```
+
 
 
 # Feature Selection
