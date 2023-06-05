@@ -142,9 +142,7 @@ folds <- createFolds(gold.r$PercChangeForc, k = 5, returnTrain = TRUE)
 
 ### OLS (Jon)
 ```{r}
-<<<<<<< HEAD
-lin.reg <- lm(PercChangeForc~., data = gold_histograms)
-=======
+
 # Run linear regression
 lin.reg <- lm(PercChangeForc~.-Binary.PercChange, data = gold)
 >>>>>>> 1bc783392c7d0973c5472cdcd1ce6416f319662c
