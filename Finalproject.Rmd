@@ -60,6 +60,7 @@ for (feature in names(gold_histograms)){
 for (feature in names(gold_histograms)[!names(gold_histograms) %in% c("Average.Price,
                                                                      PercChangeForc",
                                                                      "Binary.PercChange")]){
+  plot()
   
 }
 
