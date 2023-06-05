@@ -311,10 +311,68 @@ mean(boost.mse)
 
 ```
 
-### KNN (Arif)
+### KNN: Using Optimal Train (Arif)
 ```{r}
+# Optimize Model for Best K Parameters Using Train Function 
+library(class)
+set.seed(75849)
+knn_ctrl <- trainControl(method = "cv", number = 5) # Five Fold CV
 
+# Parameter Grid Search
+k_values <- expand.grid(k = 1:100)
+
+# Train the Model on Grid Set Above - Parameter Grid Search
+knn_optimize <- train(as.factor(Binary.PercChange) ~., data = gold.c, 
+                      method = "knn", trControl = knn_ctrl, tuneGrid = k_values)
+knn_optimize$bestTune
+
+# Optimize Models (More Manually)
+knn_vector_value <- seq(3,51,2)
+knn_perf_df <- data.frame(knn_vector_value)
+
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,] 
+  
+  # Set Inputs for KNN Function With Each Fold
+  train_features <- gold.c.train[,-length(gold.c.train)]
+  test_features <- gold.c.test[,-length(gold.c.train)]
+  train_class <- gold.c.train$Binary.PercChange
+  
+  # Set Up Vector To Input Error Scores
+  knn_error <- vector() # This vector will be wiped out with each fold run
+  
+  # Set Up Inner For Loop for KNN Factors, 3-51 (That Would be 50 Parameters) 
+  for (j in seq(3,51,2)){
+    # Run Model
+    knn.mdl <- knn(train_features, test_features, train_class, k = j)
+    
+    # Get Accuracy Score
+    knn.accuracy <- mean(knn.mdl == gold.c.test$Binary.PercChange)
+    
+    # Get Error Score & Input
+    knn.error <- 1-knn.accuracy
+    knn_error <- append(knn_error, knn.error) 
+  }
+  # Bind to Data Frame (Creating Five Columns for Five Folds)
+  knn_perf_df <- cbind(knn_perf_df, knn_error)
+}
+
+# Clean Data Frame
+knn_perf_df$KNNmeans <- rowMeans(knn_perf_df[,-1])
+colnames(knn_perf_df) <- c("K Parameter", "Fold 1", "Fold 2", "Fold 3", "Fold 4",
+                           "Fold 5", "Error Means") 
+print(knn_perf_df) 
+
+# Find Minimum Error for K Parameter
+knn_min_rn <- which.min(knn_perf_df$`Error Means`)
+knn_perf_df[knn_min_rn,]
 ```
+
+Both our train hyper-grid search function and manual grid search show that the optimal number for K parameters (the number of neighboring observations) is 13. In other words, 13 observations closest to our observation of interest will be checked to see whether they identify with class 1 (above 0.1% gold price growth) or class 0 (below 0.1% gold price growth). The majority of these 13 classes will be assigned to the observation of interest. Using this algorithm, we get a mis-classification error (on average) of 41.33%. This is below 50% and is considered better than random chance. Our manual fit is also similar to running an optimized KNN model on five fold cross validation, so we don't have to run that again. The mis-classification error of 41.33%, thus, is a comparable number to other approaches (as we run five fold cross validation for them). 
+
 
 ### Random Forest (Arif)
 ```{r}
