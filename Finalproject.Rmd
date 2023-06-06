@@ -381,6 +381,62 @@ mean(boost.mse)
 
 # Classification Problem
 
+
+### Some preliminary boundry visuals
+```{r}
+library(ggplot2)
+# install.packages("gridExtra")
+library(gridExtra)
+
+plot1 <- ggplot(gold.c, aes(x = PercChangeLag1, y = FedFundsRate, color = factor(Binary.PercChange))) +
+  geom_point() +
+  labs(color = "Binary.PercChange") +
+  scale_color_manual(values = c("navy", "salmon")) +
+  theme_linedraw() +
+  theme(legend.position = "none")
+
+plot2 <- ggplot(gold.c, aes(x = UM.Infl.Exp, y = Res.Change.Exc.Gold, color = factor(Binary.PercChange))) +
+  geom_point() +
+  labs(color = "Binary.PercChange") +
+  scale_color_manual(values = c("navy", "salmon")) +
+  theme_linedraw() +
+  theme(legend.position = "none")
+
+plot3 <- ggplot(gold.c, aes(x = X2MA, y = X3MA, color = factor(Binary.PercChange))) +
+  geom_point() +
+  labs(color = "Binary.PercChange") +
+  scale_color_manual(values = c("navy", "salmon")) +
+  theme_linedraw() +
+  theme(legend.position = "none")
+
+plot4 <- ggplot(gold.c, aes(x = NFCI, y = Indus.Prod.Ind, color = factor(Binary.PercChange))) +
+  geom_point() +
+  labs(color = "Binary.PercChange") +
+  scale_color_manual(values = c("navy", "salmon")) +
+  theme_linedraw() +
+  theme(legend.position = "none")
+
+grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
+
+```
+
+
+```{r}
+# Create a scatter plot with different colors for each class
+plot(gold.c$PercChangeLag1, gold.c$FedFundsRate, col = as.factor(gold.c$Binary.PercChange), 
+     xlab = "PercChangeLag1", ylab = "FedFundsRate")
+
+# Add a legend
+legend("topright", legend = c("Class 0", "Class 1"), col = c("blue", "red"), pch = 1)
+
+# Add a title
+title("Scatter Plot of PercChangeLag1 vs. FedFundsRate")
+
+```
+
+
+
+
 ### LDA (Shanie)
 ```{r}
 
