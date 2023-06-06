@@ -16,13 +16,9 @@ gold <- read.csv("gold.csv", sep = ",", header = TRUE)
 
 # Read CSV with one extra parameter
 sentiment <- read.csv("sentiment.csv", sep = ",", header = TRUE)
-<<<<<<< HEAD
-sentiment <- sentiment[-c(1:9, 543, 544), ] 
-=======
 
-# Clean data
-sentiment <- sentiment[-c(1:9, 543, 544), ]
->>>>>>> 586999775c0f64c41b0d89741404b7d84442c9ef
+# Clean Data for Rows Missing
+sentiment <- sentiment[-c(1:9, 543, 544), ] 
 
 # Add sentiment parameter to main data set
 gold$sentiment <- sentiment$sentiment
@@ -498,20 +494,17 @@ parameters.gbm.c <- expand.grid(n.trees = c(100,200,500,1000,1500),
 # Fit A Boosting GBM Model for Classification
 features.c <- gold.c[, !colnames(gold.c) %in% "Binary.PercChange"]
 
-trained.gbm.fit.c <- train(x = features.c, y = as.factor(gold.c$Binary.PercChange),
-                           method = "gbm", trControl = ctrl, 
-                           tuneGrid = parameters.gbm.c)
+# trained.gbm.fit.c <- train(x = features.c, y = as.factor(gold.c$Binary.PercChange),
+#                            method = "gbm", trControl = ctrl, 
+#                            tuneGrid = parameters.gbm.c)
 
-trained.gbm.fit.c$bestTune
-# n.trees
-# <dbl>
-# interaction.depth
-# <dbl>
-# shrinkage
-# <dbl>
-# n.minobsinnode
-# <dbl>
-# 392	200	10	0.075
+# trained.gbm.fit.c$bestTune
+
+### Train Function Results ###
+# Number of Trees: 200
+# Interaction Depth: 10
+# Shrinkage: 0.075
+# Minimum Number of Observations: 15
 ```
 
 After running a parameter search on our data using the train function, the best tuning parameters for our classification gradient boosting model are 200 for the number of trees, 10 for the interaction depth, 0.075 for the shrinkage parameter, and 15 for the minimum number of observations in a node. We'll use these parameters to calculate the five fold cross validation misclassification error. This will allow us to compare model performance. 
@@ -555,11 +548,129 @@ mean(gbm.c.error)
 After running five fold cross validation on our classification gradient boosting model, we received a mean misclassification error of **43.06%**. This is better than our classification random forest model, but it does not perform as well as our KNN model. Regardless, our misclassification error is below 50% and is better than random chance. 
 
 ### Support Vector Machine (Arif)
-```{r}
 
+For support vector machines, there are two main subsets of models that we'd like to explore in our classification task. The first is running support vector machines with polynomial kernels, and the second is running support vector machines with radial kernels. When running support vector machines with polynomial kernels, we'll vary for cost and degree - the latter represents the maximum polynomial transformation of our predictors. For support vector machines with radial kernels, we'll vary for cost and gamma. We'll use the tune function to run a parameter grid search for cost and gamma/degree. If the tune function does not work, we'll run a for loop to run the grid search. In order to compare our support vector machine results to other classification models, we'll run five fold cross-validation. 
+
+```{r}
+### Polynomial Kernel: Tune Function ###
+library(e1071)
+
+# Create Polynomial Grid: First Column is Cost, Second Column is Degree
+svm.param.c.poly <- expand.grid(cost = c(0.1,0.5,1,2,5,8,10,100),
+                                degree = c(2,3,4,5))
+
+# Create Data Frame to Store Misclassification Errors
+svm.poly.df <- data.frame(svm.param.c.poly)
+
+# For Loop Grid Search Using Five Fold Cross Validation
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,] 
+  
+  # Set Error Vector to Input Misclassification Errors for Each Fold
+  svm.error.vec <- vector()
+  
+  # Now Begin Fitting Model with Each Fold, Varying Parameters
+  for (j in 1:nrow(svm.poly.df)){
+    
+    # Fit Model wtih Varying Parameters: First Column = Cost, Second = Degree
+    svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
+                   cost = svm.poly.df[j,1], degree = svm.poly.df[j,2])
+    
+    # Predictions of Class (Binary Classifier)
+    svm.predictions <- predict(svm.mdl, newdata = gold.c.test)
+    
+    # Accuracy Score
+    svm.accuracy <- mean(svm.predictions == gold.c.test$Binary.PercChange)
+    
+    # Error Score & Input Into Vector
+    svm.error <- 1-svm.accuracy
+    svm.error.vec[j] <- svm.error
+    
+    # Input Error into Data Frame in Outermost (Fold) Loop
+  }
+  
+  # Input Error Vector into Data Frame
+  svm.poly.df <- cbind(svm.poly.df, svm.error.vec)
+  
+  # Error Vector Gets Washed Out At Start of New Loop
+}
+
+# Clean Data Frame
+svm.poly.df$Means <- rowMeans(svm.poly.df[,-c(1,2)])
+colnames(svm.poly.df) <- c("Cost Parameter", "Degree Parameter","Fold 1",
+                           "Fold 2", "Fold 3", "Fold 4", "Fold 5",
+                           "Average Error")
+print(svm.poly.df) 
+
+# Find Minimized Misclassification Error and Optimal Parameters for Polynomial Kernel
+svm.poly.min <- which(svm.poly.df$`Average Error` == min(svm.poly.df$`Average Error`))
+print(svm.poly.df[svm.poly.min,])
 ```
 
+We performed a grid search for the most optimal cost and degree parameters within polynomial kernels and found that the most optimal parameters are a cost value of 100 and a degree value of 2-5. The cost parameter of 100 seemed to be very good at minimizing misclassification error, regardless of polynomial degree. After running five fold cross validation with our grid search, we find that a cost parameter of 100 returned a misclassification error of **42.48%**. The support vector machine model with polynomial kernel outperforms our tree models (gradient boosting, random forests, and bagging) but still underperforms our KNN model. 
 
+```{r}
+### Radial Kernel: Grid Search ###
+
+# Create Radial Grid: First Column is Cost, Second Column is Degree
+svm.param.c.radial <- expand.grid(cost = c(0.1,0.5,1,2,5,8,10,100),
+                                gamma = c(0.1,0.5,1,2,5,8,10))
+
+# Create Data Frame to Store Misclassification Errors
+svm.radial.df <- data.frame(svm.param.c.radial)
+
+# For Loop Grid Search Using Five Fold Cross Validation
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,] 
+  
+  # Set Error Vector to Input Misclassification Errors for Each Fold
+  svm.error.vec <- vector()
+  
+  # Now Begin Fitting Model with Each Fold, Varying Parameters
+  for (j in 1:nrow(svm.radial.df)){
+    
+    # Fit Model wtih Varying Parameters: First Column = Cost, Second = Degree
+    svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
+                   cost = svm.radial.df[j,1], gamma = svm.radial.df[j,2])
+    
+    # Predictions of Class (Binary Classifier)
+    svm.predictions <- predict(svm.mdl, newdata = gold.c.test)
+    
+    # Accuracy Score
+    svm.accuracy <- mean(svm.predictions == gold.c.test$Binary.PercChange)
+    
+    # Error Score & Input Into Vector
+    svm.error <- 1-svm.accuracy
+    svm.error.vec[j] <- svm.error
+    
+    # Input Error into Data Frame in Outermost (Fold) Loop
+  }
+  
+  # Input Error Vector into Data Frame
+  svm.radial.df <- cbind(svm.radial.df, svm.error.vec)
+  
+  # Error Vector Gets Washed Out At Start of New Loop
+}
+
+# Clean Data Frame
+svm.radial.df$Means <- rowMeans(svm.radial.df[,-c(1,2)])
+colnames(svm.radial.df) <- c("Cost Parameter", "Gamma Parameter","Fold 1",
+                           "Fold 2", "Fold 3", "Fold 4", "Fold 5",
+                           "Average Error")
+print(svm.radial.df) 
+
+# Find Minimized Misclassification Error and Optimal Parameters for Polynomial Kernel
+svm.radial.min <- which(svm.radial.df$`Average Error` == min(svm.radial.df$`Average Error`))
+print(svm.radial.df[svm.radial.min,])
+```
+
+After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model. 
 
 ### Neural Network
 ```{r}
