@@ -422,23 +422,6 @@ grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
 
 ```
 
-
-```{r}
-# Create a scatter plot with different colors for each class
-plot(gold.c$PercChangeLag1, gold.c$FedFundsRate, col = as.factor(gold.c$Binary.PercChange), 
-     xlab = "PercChangeLag1", ylab = "FedFundsRate")
-
-# Add a legend
-legend("topright", legend = c("Class 0", "Class 1"), col = c("blue", "red"), pch = 1)
-
-# Add a title
-title("Scatter Plot of PercChangeLag1 vs. FedFundsRate")
-
-```
-
-
-
-
 ### LDA (Shanie)
 ```{r}
 
@@ -767,7 +750,13 @@ svm.radial.min <- which(svm.radial.df$`Average Error` == min(svm.radial.df$`Aver
 print(svm.radial.df[svm.radial.min,])
 ```
 
-After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model. 
+After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model.  
+
+### ROC Graph for Classificaiton Models
+```{r}
+
+```
+
 
 ### Neural Network
 ```{r}
