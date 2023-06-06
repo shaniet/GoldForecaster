@@ -460,21 +460,6 @@ rf.perf.df[rf.perf.df$`Mtry Parameters` == 22,]
 # Find Minimum Misclassification Error
 rf_min_rn <- which.min(rf.perf.df$`Error Means`)
 rf.perf.df[rf_min_rn,]
-
-# NOT NEEDED ####
-# nrow(rf.perf.df)
-# # Perform Grid Search
-# rf.opt.model <- train(as.factor(Binary.PercChange)~.,
-#                       data = gold.c, method = "rf", 
-#                     trControl = ctrl, 
-#                     tuneGrid = rf.c.grid)
-# 
-# #Fit Classification Tree
-# class.tree.test <- tree(as.factor(Binary.PercChange)~., gold.c)
-# summary(class.tree.test)
-# 
-# plot(class.tree.test)
-# text(class.tree.test, pretty=0, cex=0.6)
 ```
 
 Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 9 and number of trees = 300) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **44.76%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.57%-46.10*%**. The bagging algorithms were not optimal in our classification setting. 
