@@ -14,9 +14,17 @@ output: pdf_document
 # Read csv
 gold <- read.csv("gold.csv", sep = ",", header = TRUE)
 
+# Read CSV with one extra parameter
 sentiment <- read.csv("sentiment.csv", sep = ",", header = TRUE)
+<<<<<<< HEAD
 sentiment <- sentiment[-c(1:9, 543, 544), ] 
+=======
 
+# Clean data
+sentiment <- sentiment[-c(1:9, 543, 544), ]
+>>>>>>> 586999775c0f64c41b0d89741404b7d84442c9ef
+
+# Add sentiment parameter to main data set
 gold$sentiment <- sentiment$sentiment
 
 head(gold)
