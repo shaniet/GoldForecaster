@@ -388,6 +388,8 @@ library(ggplot2)
 # install.packages("gridExtra")
 library(gridExtra)
 
+# Classification plots of important variables according to Baruta
+
 plot1 <- ggplot(gold.c, aes(x = PercChangeLag1, y = FedFundsRate, color = factor(Binary.PercChange))) +
   geom_point() +
   labs(color = "Binary.PercChange") +
