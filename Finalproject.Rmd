@@ -15,7 +15,7 @@ output: pdf_document
 gold <- read.csv("gold.csv", sep = ",", header = TRUE)
 
 sentiment <- read.csv("sentiment.csv", sep = ",", header = TRUE)
-sentiment <- sentiment[-c(1:9, 543, 544), ]
+sentiment <- sentiment[-c(1:9, 543, 544), ] 
 
 gold$sentiment <- sentiment$sentiment
 
@@ -30,14 +30,7 @@ gold$Binary.PercChange <- ifelse(gold$PercChangeForc > 0.1, 1, 0)
 # Check if Features Are Numeric (Returns False, So Non-Numeric Variables)
 all(sapply(gold, is.numeric))
 
-
-# gold <- gold[,-26]
-# gold <- gold[,-24]
-# gold <- gold[,-2]
-# gold <- gold[,-1]
-
-# head(gold)
-# Head Gold
+# Final Check of Head
 head(gold)
 ```
 
@@ -488,28 +481,70 @@ Since our train control function was not working, we decided to run a manual par
 set.seed(75849)
 ctrl <- trainControl(method = "cv", number = 5) # Five Fold CV
 
+# Create Parameter Grid
 parameters.gbm.c <- expand.grid(n.trees = c(100,200,500,1000,1500),
                                 interaction.depth = c(5,10,15,20,50,100), 
                                 shrinkage = c(0.001,0.01,0.05,0.075,0.1),
                                 n.minobsinnode = c(5,10,15,20))
 
+# Fit A Boosting GBM Model for Classification
+features.c <- gold.c[, !colnames(gold.c) %in% "Binary.PercChange"]
 
+trained.gbm.fit.c <- train(x = features.c, y = as.factor(gold.c$Binary.PercChange),
+                           method = "gbm", trControl = ctrl, 
+                           tuneGrid = parameters.gbm.c)
 
-# # Create Parameter Grid
-# parameters.r <- expand.grid(n.trees = c(100,200,500,1000,1500),
-#                           interaction.depth = c(5,10,15,20,50,100),
-#                           shrinkage = c(0,0.001,0.005,0.01,0.03,0.05),
-#                           n.minobsinnode = c(5))
-# 
-# # Fit A Boosting (GBM) Model 
-# features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
-# 
-# trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc, 
-#                            method = "gbm", trControl = control, 
-#                            tuneGrid = parameters.r)
-# 
-# trained.gbm.fit.r$bestTune
+trained.gbm.fit.c$bestTune
+# n.trees
+# <dbl>
+# interaction.depth
+# <dbl>
+# shrinkage
+# <dbl>
+# n.minobsinnode
+# <dbl>
+# 392	200	10	0.075
 ```
+
+After running a parameter search on our data using the train function, the best tuning parameters for our classification gradient boosting model are 200 for the number of trees, 10 for the interaction depth, 0.075 for the shrinkage parameter, and 15 for the minimum number of observations in a node. We'll use these parameters to calculate the five fold cross validation misclassification error. This will allow us to compare model performance. 
+
+```{r}
+# Set Misclassification Error Vector
+gbm.c.error <- vector() 
+
+# Five Fold Cross Validation with Best Parameters
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,] 
+  
+  # Fit the Model with Optimal Parameters Listed Above
+  gbm.mdl.c <- gbm(Binary.PercChange ~., data = gold.c.train,
+                   distribution = "bernoulli", shrinkage = 0.075,
+                   n.trees = 200, interaction.depth = 10, 
+                   n.minobsinnode = 15)
+  
+  # Predict the Training Model on Testing Data
+  gbm.predict <- predict(gbm.mdl.c, newdata = gold.c.test, type = "response")
+  
+  # Convert Response Prediction to Classifier
+  gbm.class <- ifelse(gbm.predict > 0.5, 1,0)
+  
+  # Accuracy Scores
+  accuracy <- mean(gbm.class == gold.c.test$Binary.PercChange)
+  
+  # Error Scores & Input
+  err <- 1-accuracy
+  gbm.c.error <- append(gbm.c.error,err)
+}
+
+# Print Error Vector & Retrieve Five Fold Cross Validation Mean
+print(gbm.c.error)
+mean(gbm.c.error)
+```
+
+After running five fold cross validation on our classification gradient boosting model, we received a mean misclassification error of **43.06%**. This is better than our classification random forest model, but it does not perform as well as our KNN model. Regardless, our misclassification error is below 50% and is better than random chance. 
 
 ### Support Vector Machine (Arif)
 ```{r}
