@@ -200,10 +200,64 @@ mean(lin.reg.mse)
 
 
 ### Principal Components Regression (Arif)
-```{r}
 
+For principal components regression, we'll optimize for the number of components in our regression by minimizing mean squared errors in predicting forecast percent change. We'll use a validation plot to see what number of components minimizes errors - in this case MSEP scores. 
+
+```{r}
+# Check Validation Plots for Principal Components Regression
+library(pls)
+for (i in 1:length(folds)){ 
+  # Set Folds
+  gold.r.train <- gold.r[folds[[i]],]
+  gold.r.test <- gold.r[-folds[[i]],]
+  pcr.mdl.r <- pcr(PercChangeForc ~., data = gold.r.train, scale = TRUE, 
+                   validation = "CV")
+  validationplot(pcr.mdl.r, val.type = "MSEP")
+} 
+
+# Set Up Data Frame for Receiving Error Vectors
+components.r <- 1:(length(gold.r)-1)
+pcr.err.df <- data.frame(components.r)
+
+# Fit PCR Model on Five Fold Cross Validation
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.r.train <- gold.r[train_index,]
+  gold.r.test <- gold.r[-train_index,]   
+  
+  # Set Error Vector to Capture MSE Scores
+  mse.pcr.vector <- vector()
+  
+  # For Loop on Multiple Components
+  for (j in 1:(length(gold.r)-1)){
+    
+  # Fit Regression Model
+  pcr.mdl <- pcr(PercChangeForc ~., data = gold.r.train, scale = TRUE)
+  
+  # Predict Using PCR
+  pcr.predict.r <- predict(pcr.mdl, gold.r.test, ncomp = j)
+  
+  # MSE Calculation & Input
+  mse.pcr.vector[j] <- mean((gold.r.test$PercChangeForc-pcr.predict.r)^2)
+  }
+  
+  # Input Vector of MSE Values for Each Fold into Data Frame
+  pcr.err.df <- cbind(pcr.err.df, mse.pcr.vector)
+}
+
+# Clean Data Frame
+pcr.err.df$Means <- rowMeans(pcr.err.df[,-1])
+colnames(pcr.err.df) <- c("Components","Fold 1","Fold 2","Fold 3", "Fold 4",
+                          "Fold 5", "MSE Means")
+print(pcr.err.df) 
+
+# Locate Minimium MSE in Components
+min.pcr.error.rn <- which(pcr.err.df$`MSE Means` == min(pcr.err.df$`MSE Means`))
+print(pcr.err.df[min.pcr.error.rn,])
 ```
 
+After running five fold cross validation, we find that setting 21 components in our principal components regression optimally minimizes mean squared error. From running cross validation, our model returns an average mean squared error of **20.97**. 
 
 ### Random Forest + Bagging (Jon)
 ```{r}
