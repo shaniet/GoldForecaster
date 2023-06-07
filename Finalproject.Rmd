@@ -212,7 +212,7 @@ for (i in 1:length(folds)){
   gold.r.test <- gold.r[-folds[[i]],]
   pcr.mdl.r <- pcr(PercChangeForc ~., data = gold.r.train, scale = TRUE, 
                    validation = "CV")
-  validationplot(pcr.mdl.r, val.type = "MSEP")
+  validationplot(pcr.mdl.r, val.type = "MSEP", main = paste0("Percent Change in Gold Prices: MSE Performance - Fold ",i), xlab = "Number of Components")
 } 
 
 # Set Up Data Frame for Receiving Error Vectors
