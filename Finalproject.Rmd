@@ -816,10 +816,21 @@ roc_rf <- pROC::roc(gold.c.classes, rf.pred.vector)
 roc_gbm <- pROC::roc(gold.c.classes, boost.pred.vector)
 roc_svm <- pROC::roc(gold.c.classes, svm.pred.vector)
 
-plot(roc_knn, main = "ROC Curve", print.auc = TRUE, col = "green")
-lines(roc_rf, col = "blue")
-lines(roc_gbm, col = "red")
-lines(roc_svm, col = "yellow")
+# Individual Plots
+plot(roc_knn, main = "ROC Curve", print.auc = TRUE, col = "navy") 
+plot(roc_rf, main = "ROC Curve", print.auc = TRUE, col = "navy")
+plot(roc_gbm, main = "ROC Curve", print.auc = TRUE, col = "navy")
+plot(roc_svm, main = "ROC Curve", print.auc = TRUE, col = "navy")
+
+# All Together Now
+plot(roc_knn, main = "ROC Curve", col = "navy") 
+lines(roc_rf, col = "magenta")
+lines(roc_gbm, col = "green")
+lines(roc_svm, col = "brown") 
+legend("bottomright", legend = c("KNN", "RF","GBM","SVM"), 
+       col = c("navy", "magenta","green","brown"), 
+       lwd = 2, cex = 0.6,
+       lty = c(1, 1), title = "Lines")
 
 pROC::auc(roc_knn) 
 pROC::auc(roc_rf) 
