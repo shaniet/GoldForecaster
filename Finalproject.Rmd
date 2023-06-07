@@ -748,7 +748,13 @@ print(svm.radial.df)
 
 # Find Minimized Misclassification Error and Optimal Parameters for Polynomial Kernel
 svm.radial.min <- which(svm.radial.df$`Average Error` == min(svm.radial.df$`Average Error`))
-print(svm.radial.df[svm.radial.min,])
+print(svm.radial.df[svm.radial.min,]) 
+
+# SVM Plots: Maybe Don't Use This
+svm.radial.full <- svm(as.factor(Binary.PercChange) ~., data = gold.c, 
+                       kernel = "radial", cost = 1, gamma = 0.1)
+plot(svm.radial.full, gold.c, PercChangeLag1 ~ FedFundsRate, 
+     xlab = "Fed Funds Rate (Monthly Average)", ylab = "Gold Price Lagged Percent Change")
 ```
 
 After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model.  
