@@ -739,7 +739,17 @@ print(svm.poly.df)
 
 # Find Minimized Misclassification Error and Optimal Parameters for Polynomial Kernel
 svm.poly.min <- which(svm.poly.df$`Average Error` == min(svm.poly.df$`Average Error`))
-print(svm.poly.df[svm.poly.min,])
+print(svm.poly.df[svm.poly.min,]) 
+
+### Additional Plots for Presentation ###
+
+# Grid Search Plot
+ggplot(svm.poly.df, aes(x = `Cost Parameter`, y = `Degree Parameter`,
+                       size = svm.poly.df$`Average Error`))+
+  geom_point(col = "navy")+labs(x = "Number of Variables Sampled (Mtry)", 
+       title = "Classification Random Forest Performance")
+
+print(svm.poly.df)
 ```
 
 We performed a grid search for the most optimal cost and degree parameters within polynomial kernels and found that the most optimal parameters are a cost value of 100 and a degree value of 2-5. The cost parameter of 100 seemed to be very good at minimizing misclassification error, regardless of polynomial degree. After running five fold cross validation with our grid search, we find that a cost parameter of 100 returned a misclassification error of **42.48%**. The support vector machine model with polynomial kernel outperforms our tree models (gradient boosting, random forests, and bagging) but still underperforms our KNN model. 
