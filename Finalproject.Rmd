@@ -716,7 +716,8 @@ for (i in 1:length(folds)){
   for (j in 1:nrow(svm.radial.df)){
     
     # Fit Model wtih Varying Parameters: First Column = Cost, Second = Degree
-    svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
+    svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train, 
+                   kernel = "radial",
                    cost = svm.radial.df[j,1], gamma = svm.radial.df[j,2])
     
     # Predictions of Class (Binary Classifier)
@@ -752,9 +753,78 @@ print(svm.radial.df[svm.radial.min,])
 
 After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model.  
 
-### ROC Graph for Classificaiton Models
+### ROC Graph for Classification Models
 ```{r}
+# Data Frame for Predicted Probability Values & Actual Values
+empty_vector <- 1:nrow(gold.c)
+roc.df <- data.frame(empty_vector)
 
+# Vectors for Predicted Models/Actual observations: Run This Before Each Fold
+gold.c.classes <- vector()
+lda.pred.vector <- vector()
+qda.pred.vector <- vector()
+knn.pred.vector <- vector()
+rf.pred.vector <- vector()
+boost.pred.vector <- vector()
+svm.pred.vector <- vector()
+
+# Fitting the Models with Five Folds
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,]  
+  
+  # Append Actual Observations to a Vector
+  gold.c.classes <- append(gold.c.classes, gold.c.test$Binary.PercChange)
+  
+  # Set Inputs for KNN Function With Each Fold
+  train_features <- gold.c.train[,-length(gold.c.train)]
+  test_features <- gold.c.test[,-length(gold.c.train)]
+  train_class <- gold.c.train$Binary.PercChange
+  
+  # Fit Various Models to Folds 
+  knn.mdl <- knn(train_features, test_features, train_class, k = 13, prob = TRUE)
+  rf.model <- randomForest(as.factor(Binary.PercChange) ~.,
+                             data = gold.c.train, mtry = 18,
+                             ntree = 200)
+  gbm.mdl.c <- gbm(Binary.PercChange ~., data = gold.c.train,
+                   distribution = "bernoulli", shrinkage = 0.075,
+                   n.trees = 200, interaction.depth = 10, 
+                   n.minobsinnode = 15)
+  svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
+                 kernel = "radial", cost = 1, gamma = 0.1, prob = TRUE)
+  
+  # Predict on Various Models
+  knn.pred <- attr(knn.mdl, "prob")
+  rf.pred <- predict(rf.model, gold.c.test, type = "prob")
+  gbm.pred <- predict(gbm.mdl.c, gold.c.test, type = "response")
+  svm.pred <- predict(svm.mdl, gold.c.test, prob = TRUE)
+  
+  # Append Predictions to Predict Vectors
+  knn.pred.vector <- append(knn.pred.vector, knn.pred) 
+  rf.pred.vector <- append(rf.pred.vector, rf.pred[,2])
+  boost.pred.vector <- append(boost.pred.vector, gbm.pred)
+  svm.pred.vector <- append(svm.pred.vector, svm.pred)
+  
+}
+ 
+# ROC Curves
+library(ROCR)
+roc_knn <- pROC::roc(gold.c.classes, knn.pred.vector)
+roc_rf <- pROC::roc(gold.c.classes, rf.pred.vector)
+roc_gbm <- pROC::roc(gold.c.classes, boost.pred.vector)
+roc_svm <- pROC::roc(gold.c.classes, svm.pred.vector)
+
+plot(roc_knn, main = "ROC Curve", print.auc = TRUE, col = "green")
+lines(roc_rf, col = "blue")
+lines(roc_gbm, col = "red")
+lines(roc_svm, col = "yellow")
+
+pROC::auc(roc_knn) 
+pROC::auc(roc_rf) 
+pROC::auc(roc_gbm) 
+pROC::auc(roc_svm) 
 ```
 
 
