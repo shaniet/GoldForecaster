@@ -503,7 +503,8 @@ knn.point <- data.frame(`K Parameter` = 13, `Error Means` = 0.4133)
 
 ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
          geom_line(color = "navy")+
-         labs(x = "Number of K Nearest Neighbors", y = "MSE Score",
+         labs(x = "Number of K Nearest Neighbors", 
+              y = "Misclassification Error Score",
               title = "KNN Five Fold CV Performance")+
   geom_text(data = knn.point, 
             aes(x = K.Parameter, y = Error.Means, label = Error.Means),
@@ -582,18 +583,33 @@ for (i in 1:length(folds)){
 # Clean Up Data Frame
 rf.perf.df$Means <- rowMeans(rf.perf.df[,-c(1,2)]) 
 colnames(rf.perf.df) <- c("Mtry Parameters", "Number of Trees", "Fold 1", "Fold 2",
-                          "Fold 3", "Fold 4", "Fold 5", "Error Means")
+                          "Fold 3", "Fold 4", "Fold 5", "FF CV Errors")
 print(rf.perf.df) 
 
 # Find Bagging Misclassification Errors
 rf.perf.df[rf.perf.df$`Mtry Parameters` == 22,]
 
 # Find Minimum Misclassification Error
-rf_min_rn <- which.min(rf.perf.df$`Error Means`)
-rf.perf.df[rf_min_rn,]
+rf_min_rn <- which.min(rf.perf.df$`FF CV Errors`)
+rf.perf.df[rf_min_rn,] 
+
+### Additional Plots for Presentation ### 
+
+# Variable Importance
+rf.mdl.pres.try <- randomForest(as.factor(Binary.PercChange) ~.,
+                             data = gold.c, mtry = 18,
+                             ntree = 200, importance = TRUE) 
+varImpPlot(rf.mdl.pres, cex = 0.55, main = "Random Forest Variable Importance") 
+
+# Grid Plot of MSE Performance through Five Fold
+ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of Trees`,
+                       size = `FF CV Errors`))+geom_point(col = "navy")+
+  labs(x = "Number of Variables Sampled (Mtry)", 
+       title = "Classification Random Forest Performance")
+
 ```
 
-Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 9 and number of trees = 300) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **44.76%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.57%-46.10*%**. The bagging algorithms were not optimal in our classification setting. 
+Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 18 and number of trees = 200) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **42.28%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.76%-47.42*%**. The bagging algorithms were not optimal in our classification setting. 
 
 ### Boosting (Arif)
 ```{r}
