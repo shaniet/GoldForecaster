@@ -254,7 +254,12 @@ print(pcr.err.df)
 
 # Locate Minimium MSE in Components
 min.pcr.error.rn <- which(pcr.err.df$`MSE Means` == min(pcr.err.df$`MSE Means`))
-print(pcr.err.df[min.pcr.error.rn,])
+print(pcr.err.df[min.pcr.error.rn,]) 
+
+# Additional Plots for Presentation: Along with MSE Plots
+ggplot(data = pcr.err.df, aes(x = Components, y = `MSE Means`))+
+  geom_line(color = "navy")+labs(x = "Number of Components", y = "Test MSE",
+       title = "Five Fold Cross Validation: Components Performance")
 ```
 
 After running five fold cross validation, we find that setting 21 components in our principal components regression optimally minimizes mean squared error. From running cross validation, our model returns an average mean squared error of **20.97**. 
@@ -382,7 +387,7 @@ mean(boost.mse)
 # Classification Problem
 
 
-### Some preliminary boundry visuals
+### Some preliminary boundary visuals
 ```{r}
 library(ggplot2)
 # install.packages("gridExtra")
@@ -489,7 +494,27 @@ print(knn_perf_df)
 
 # Find Minimum Error for K Parameter
 knn_min_rn <- which.min(knn_perf_df$`Error Means`)
-knn_perf_df[knn_min_rn,]
+knn_perf_df[knn_min_rn,] 
+
+# Additional Plots for Presentation 
+
+# Create a Scatter Plot for Fifth Fold Test Points
+plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
+     col = ifelse(gold.c.test$Binary.PercChange == 1, "salmon","navy"), 
+     pch = 1, xlab = "Lagged MoM Percentage Change in Gold Prices", 
+     ylab = "Fed Funds Rate", main = "Gold Price Binary Classifier")
+legend("bottomright", legend = c("1 as > 0.1%", "0 as < 0.1%"),
+       pch = c(1,1), col = c("salmon", "navy"), cex = 0.7)
+
+# Create Scatter Plot with Fifth Fold Test Points & KNN Predictions
+plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
+     col = ifelse(gold.c.test$Binary.PercChange == 1, "salmon","navy"), 
+     pch = 1, xlab = "Lagged MoM Percentage Change in Gold Prices", 
+     ylab = "Fed Funds Rate", main = "Gold Price Binary Classifier with KNN Predictions")
+points(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate,
+       col = ifelse(knn.mdl == 1, "salmon","navy"), pch = 4) 
+legend("bottomright", legend = c("Pred. 1 as > 0.1%", "Pred. 0 as < 0.1%"), 
+       pch = c(4,4), col = c("salmon", "navy"), cex = 0.7)
 ```
 
 Both our train hyper-grid search function and manual grid search show that the optimal number for K parameters (the number of neighboring observations) is 13. In other words, 13 observations closest to our observation of interest will be checked to see whether they identify with class 1 (above 0.1% gold price growth) or class 0 (below 0.1% gold price growth). The majority of these 13 classes will be assigned to the observation of interest. Using this algorithm, we get a mis-classification error (on average) of **41.33%**. This is below 50% and is considered better than random chance. Our manual fit is also similar to running an optimized KNN model on five fold cross validation, so we don't have to run that again. The mis-classification error of 41.33%, thus, is a comparable number to other approaches (as we run five fold cross validation for them). 
