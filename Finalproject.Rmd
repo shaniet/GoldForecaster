@@ -496,7 +496,18 @@ print(knn_perf_df)
 knn_min_rn <- which.min(knn_perf_df$`Error Means`)
 knn_perf_df[knn_min_rn,] 
 
-# Additional Plots for Presentation 
+### Additional Plots for Presentation ###
+
+# Five Fold CV Error Score Against Number of K Nearest Neighbors 
+knn.point <- data.frame(`K Parameter` = 13, `Error Means` = 0.4133)
+
+ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
+         geom_line(color = "navy")+
+         labs(x = "Number of K Nearest Neighbors", y = "MSE Score",
+              title = "KNN Five Fold CV Performance")+
+  geom_text(data = knn.point, 
+            aes(x = K.Parameter, y = Error.Means, label = Error.Means),
+             vjust = 1.3, color = "navy", size = 3)
 
 # Create a Scatter Plot for Fifth Fold Test Points
 plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
