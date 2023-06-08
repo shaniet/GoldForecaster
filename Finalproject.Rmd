@@ -64,6 +64,18 @@ for (feature in names(gold_histograms)){
        main = paste0("Histogram of ",feature))
 }
 
+
+main.hist <- ggplot(gold, aes(x = PercChangeForc)) +
+  geom_histogram(binwidth = 2, fill = "navy", color = "lightgrey") +
+  labs(x = "Gold Price % Change", y = "Frequency") +
+  ggtitle("Percent Change of Gold Price") +
+  coord_cartesian(xlim = c(-20, 25))+
+  theme_minimal()
+ggsave(file = "~/Desktop/main_hist.png", plot = main.hist, width = 10, height = 6, bg = "white")
+
+
+
+
 # For Loop for Box Plots
 for (feature in names(gold_histograms)){
   boxplot(gold_histograms[[feature]], ylab = paste0("Value of ",feature),
@@ -71,7 +83,32 @@ for (feature in names(gold_histograms)){
 }
 ```
 
-The boxplots and histograms show that our variables are on average normally distributed. There are outliers in some of our features, such as percent changes in monthly prices and changes in bank reserves. However, we believe these outliers are still essential in predicting the movement of gold prices. 
+The boxplots and histograms show that our variables are on average normally distributed. There are outliers in some of our features, such as percent changes in monthly prices and changes in bank reserves. However, we believe these outliers are still essential in predicting the movement of gold prices.
+
+```{r}
+# library(ggplot2)
+# library(gridExtra)
+
+hist_plots <- list()
+
+for (feature in names(gold_histograms)) {
+  # Create a temporary data frame with a single column for the current feature
+  temp_df <- data.frame(x = gold_histograms[[feature]])
+
+  hist_plot <- ggplot(temp_df, aes(x = x)) +
+    geom_histogram(binwidth = 2, fill = "navy", color = "lightgrey") +
+    labs(x = feature, y = "Frequency") +
+    ggtitle(paste0("Histogram of ", feature)) +
+    theme_minimal()
+  hist_plots[[feature]] <- hist_plot
+}
+
+grid <- do.call(grid.arrange, c(hist_plots, ncol = 6))
+
+ggsave(file = "~/Desktop/histogram_grid.png", plot = grid, width = 31.5, height = 14.4, bg = "white")
+
+```
+
 
 ### Correlation Values
 ```{r} 
@@ -269,45 +306,128 @@ After running five fold cross validation, we find that setting 21 components in 
 library(gbm)
 set.seed(123)
 
-mtry.vals <- seq(1, 22, by = 1)
+# mtry.vals <- seq(1, 22, by = 1)
+# 
+# bag.mse <- vector()
+# mod.df.r <- data.frame(mtry.vals)
+# 
+# for (i in 1:5){
+#   
+#   training.i <- folds[[i]]
+#   testing.i <- setdiff(1:length(gold.r$PercChangeForc), training.i)
+#   gold.test <- gold.r[testing.i,]
+#   gold.train <- gold.r[training.i,]
+#   
+#   
+#   for (j in seq_along(mtry.vals)){
+# 
+#   mod <- randomForest(PercChangeForc~., data = gold.train, mtry = mtry.vals[j], importance = TRUE)
+# 
+#   mod.pred <- predict(mod, newdata = gold.test)
+# 
+#   bag.mse[j] <- mean((mod.pred-gold.test$PercChangeForc)^2)
+#   
+#   }
+#   # Append our MSE Vector into Our Data Frame (Memory)
+#   mod.df.r <- cbind(mod.df.r, bag.mse)
+#   
+# }
+# mod.df.r
+# 
+# mod.df.r$mean_mse <- rowMeans(mod.df.r[, -1])
+# 
+# # Optimal bagging mtry
+# opt.mtry <- mod.df.r[which.min(mod.df.r$mean_mse), ]
+# opt.mtry
+# 
+# # plot(randomForest(PercChangeForc~., data = gold.train, mtry = 1, importance = TRUE))
+# 
+# # Optimal Random Forest MSE: mtry = 1, MSE = 21.21
+# 
+# # Bagging MSE: MSE = 25.70529
 
-bag.mse <- vector()
-mod.df.r <- data.frame(mtry.vals)
 
-for (i in 1:5){
+-------
+
+# Optimize Random Forest Model for Parameters
+library(tree)
+set.seed(75849)
+
+# Set Grid of Parameters for Random Forests
+rf.c.grid <- expand.grid(mtry = 1:22, ntree = c(100,200,300,400,500,1000,1500))
+nrow(rf.c.grid)
+
+
+# Set Up Data Frame to Input Values from Manual Grid Search
+rf.perf.df <- data.frame(rf.c.grid[,1]) # First Column is mtry
+rf.perf.df <- cbind(rf.perf.df, rf.c.grid[,2]) # Second Column is number of trees
+
+# Manual For Loop Grid Search
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.r.train <- gold.r[train_index,]
+  gold.r.test <- gold.r[-train_index,] 
   
-  training.i <- folds[[i]]
-  testing.i <- setdiff(1:length(gold.r$PercChangeForc), training.i)
-  gold.test <- gold.r[testing.i,]
-  gold.train <- gold.r[training.i,]
+  # Set Up Empty Vector to Input MSE for Each Fold
+  rf_mse_vec <- vector()
   
-  
-  for (j in seq_along(mtry.vals)){
-
-  mod <- randomForest(PercChangeForc~., data = gold.train, mtry = mtry.vals[j], importance = TRUE)
-
-  mod.pred <- predict(mod, newdata = gold.test)
-
-  bag.mse[j] <- mean((mod.pred-gold.test$PercChangeForc)^2)
-  
+  # Now Set Up Grid Search For Loop Using rf.perf.df Parameter Grid
+  for (j in 1:nrow(rf.perf.df)){
+    rf.model <- randomForest(PercChangeForc ~.,
+                             data = gold.r.train, mtry = rf.perf.df[j,1],
+                             ntree = rf.perf.df[j,2])
+    
+    # Predict on Testing Set
+    rf.predictions <- predict(rf.model, newdata = gold.r.test)
+    
+    # Calculate MSE
+    rf.mse <- mean((rf.predictions-gold.r.test$PercChangeForc)^2)
+    
+    # Input into Vector
+    rf_mse_vec[j] <- rf.mse
   }
-  # Append our MSE Vector into Our Data Frame (Memory)
-  mod.df.r <- cbind(mod.df.r, bag.mse)
   
+  # Put Error Vector into RF Data Frame to Measure MSE
+  rf.perf.df <- cbind(rf.perf.df, rf_mse_vec)
+  
+  # Run This Back Up Again for Five Folds, Data Frame Has Five Columns
 }
-mod.df.r
 
-mod.df.r$mean_mse <- rowMeans(mod.df.r[, -1])
+# Clean Up Data Frame
+rf.perf.df$Means <- rowMeans(rf.perf.df[,-c(1,2)]) 
+colnames(rf.perf.df) <- c("Mtry Parameters", "Number of Trees", "Fold 1", "Fold 2",
+                          "Fold 3", "Fold 4", "Fold 5", "MSE")
+print(rf.perf.df) 
 
-# Optimal bagging mtry
-opt.mtry <- mod.df.r[which.min(mod.df.r$mean_mse), ]
-opt.mtry
+plot(rf.perf.df$`Mtry Parameters`, rf.perf.df$MSE)
+
+# Find the line with the lowest MSE
+lowest_mse_line <- which.min(rf.perf.df$MSE)
+
+print(rf.perf.df[lowest_mse_line, ])
+
+# OPTIMAL RANDOM FOREST PARAMETERS:
+# MTRY = 3
+# Number of Trees = 300
+# Corresponding MSE = 21.05649
 
 
+rf.perf.df[rf.perf.df$`Mtry Parameters`==22,]
+# OPTIMAL BAGGING TREE COUNT:
+# 500 trees had the lowest MSE of all the mtry = 22 iterations
+# Corresponding MSE = 24.44521
 
-# Optimal Random Forest MSE: mtry = 1, MSE = 21.21
 
-# Bagging MSE: MSE = 25.70529
+# Grid Plot of MSE Performance through Five Fold
+reg.tree.mse.plot <- ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of Trees`,
+                       size = `MSE`))+geom_point(col = "navy")+
+  labs(x = "Number of Variables Sampled (Mtry)", 
+       title = "Regression Random Forest Performance")+
+  theme_classic()
+
+
+ggsave(file = "~/Desktop/reg_plot.png", plot = reg.tree.mse.plot, width = 9, height = 6, bg = "white")
 
 ```
 
@@ -317,32 +437,32 @@ set.seed(123)
 library(caret)
 library(gbm)
 
-# # Train Function with Grid of Parameters
-# control <- trainControl(method = "cv", number = 5)
-# 
-# # Create Parameter Grid
-# parameters.r <- expand.grid(n.trees = c(100,200,500,1000,1500),
-#                           interaction.depth = c(5,10,15,20,50,100),
-#                           shrinkage = c(0,0.001,0.005,0.01,0.03,0.05),
-#                           n.minobsinnode = c(5))
-# 
-# # Fit A Boosting (GBM) Model 
-# features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
-# 
-# trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc, 
-#                            method = "gbm", trControl = control, 
-#                            tuneGrid = parameters.r)
-# 
-# trained.gbm.fit.r$bestTune
+# Train Function with Grid of Parameters
+control <- trainControl(method = "cv", number = 5)
+
+# Create Parameter Grid
+parameters.r <- expand.grid(n.trees = c(100,200,500,1000,1500),
+                          interaction.depth = c(5,10,15,20,50,100),
+                          shrinkage = c(0,0.001,0.005,0.01,0.03,0.05),
+                          n.minobsinnode = c(5))
+
+# Fit A Boosting (GBM) Model
+features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
+
+trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc,
+                           method = "gbm", trControl = control,
+                           tuneGrid = parameters.r)
+
+trained.gbm.fit.r$bestTune
 
 # Output:
 
-# n.trees = 100	
-# 
+# n.trees = 100
+#
 # interaction.depth = 5
-# 
+#
 # shrinkage = 0.01
-# 
+#
 # n.minobsinnode = 5
 
 
@@ -397,35 +517,39 @@ library(gridExtra)
 
 plot1 <- ggplot(gold.c, aes(x = PercChangeLag1, y = FedFundsRate, color = factor(Binary.PercChange))) +
   geom_point() +
-  labs(color = "Binary.PercChange") +
+  labs(x = "Gold Price % Change", y = "Federal Funds Rate",color = "Binary.PercChange") +
   scale_color_manual(values = c("navy", "salmon")) +
   theme_linedraw() +
   theme(legend.position = "none")
 
 plot2 <- ggplot(gold.c, aes(x = UM.Infl.Exp, y = Res.Change.Exc.Gold, color = factor(Binary.PercChange))) +
   geom_point() +
-  labs(color = "Binary.PercChange") +
+  labs(x = "Inflation Expectation", y = "US Bank Reserves (less gold)", color = "Binary.PercChange") +
   scale_color_manual(values = c("navy", "salmon")) +
   theme_linedraw() +
   theme(legend.position = "none")
 
 plot3 <- ggplot(gold.c, aes(x = X2MA, y = X3MA, color = factor(Binary.PercChange))) +
   geom_point() +
-  labs(color = "Binary.PercChange") +
+  labs(x = "2 Month Moving Average Gold Price % Change", y = "2 Month Moving Average Gold Price % Change", color = "Binary.PercChange") +
   scale_color_manual(values = c("navy", "salmon")) +
   theme_linedraw() +
   theme(legend.position = "none")
 
 plot4 <- ggplot(gold.c, aes(x = NFCI, y = Indus.Prod.Ind, color = factor(Binary.PercChange))) +
   geom_point() +
-  labs(color = "Binary.PercChange") +
+  labs(x = "Market Sentiment Index", y = "Industrial Production",color = "Binary.PercChange") +
   scale_color_manual(values = c("navy", "salmon")) +
   theme_linedraw() +
   theme(legend.position = "none")
 
-grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
+grid.plot <- grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
+grid.plot
+
+ggsave(file = "~/Desktop/grid_plot.png", plot = grid.plot, width = 10, height = 6, bg = "white")
 
 ```
+
 
 ### LDA (Shanie)
 ```{r}
