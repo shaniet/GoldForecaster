@@ -230,8 +230,64 @@ mean(lin.reg.mse)
 
 ```
 
-### Ridge & Lasso (Shanie)
+### Ridge & Lasso
 ```{r}
+# Load required library
+library(glmnet)
+
+# Convert the data to matrix format
+X <- as.matrix(gold.r[, -ncol(gold.r)]) # takes out last column, sentiment?
+y <- as.matrix(gold.r$PercChangeForc)
+
+# Create a matrix of cross-validation folds
+
+# Initialize vectors to store MSEs
+ridgeMSEs <- c()
+lassoMSEs <- c()
+
+# Perform ridge and lasso regression with cross-validation
+for (i in 1:length(folds)) {
+  # Split the data into training and testing sets based on the current fold
+  trainData <- X[-folds[[i]], ] # training and testing are switched here
+  trainLabels <- y[-folds[[i]]]
+  testData <- X[folds[[i]], ]
+  testLabels <- y[folds[[i]]]
+  
+  # Perform ridge regression
+  ridgeModel <- cv.glmnet(trainData, trainLabels, alpha = 0)
+  ridgePredictions <- predict(ridgeModel, newx = testData, s = "lambda.min")
+  ridgeMSE <- mean((testLabels - ridgePredictions)^2)
+  ridgeMSEs <- c(ridgeMSEs, ridgeMSE)
+  
+  # Perform lasso regression
+  lassoModel <- cv.glmnet(trainData, trainLabels, alpha = 1)
+  lassoPredictions <- predict(lassoModel, newx = testData, s = "lambda.min")
+  lassoMSE <- mean((testLabels - lassoPredictions)^2)
+  lassoMSEs <- c(lassoMSEs, lassoMSE)
+}
+
+# Find the best ridge model
+bestRidgeIndex <- which.min(ridgeMSEs)
+bestRidgeMSE <- ridgeMSEs[bestRidgeIndex]
+bestRidgeModel <- cv.glmnet(X, y, alpha = 0)
+bestRidgePredictions <- predict(bestRidgeModel, newx = X, s = "lambda.min")
+
+# Find the best lasso model
+bestLassoIndex <- which.min(lassoMSEs)
+bestLassoMSE <- lassoMSEs[bestLassoIndex]
+bestLassoModel <- cv.glmnet(X, y, alpha = 1)
+bestLassoPredictions <- predict(bestLassoModel, newx = X, s = "lambda.min")
+
+# Print the MSE for the best ridge and lasso models
+print(paste("Best Ridge Regression MSE:", bestRidgeMSE))
+print(paste("Best Lasso Regression MSE:", bestLassoMSE))
+
+plot(bestRidgeModel, xvar = "lambda", label = TRUE)
+title("Ridge Regression Coefficient Profiles")
+
+# Plot the coefficient profiles for lasso regression
+plot(bestLassoModel, xvar = "lambda", label = TRUE)
+title("Lasso Regression Coefficient Profiles")
 
 ```
 
@@ -346,8 +402,6 @@ set.seed(123)
 # 
 # # Bagging MSE: MSE = 25.70529
 
-
--------
 
 # Optimize Random Forest Model for Parameters
 library(tree)
@@ -1030,17 +1084,18 @@ roc_svm <- pROC::roc(gold.c.classes, svm.pred.vector)
 plot(roc_knn, main = "ROC Curve: KNN", print.auc = TRUE, col = "navy") 
 plot(roc_rf, main = "ROC Curve: Random Forest", print.auc = TRUE, col = "navy")
 plot(roc_gbm, main = "ROC Curve: GBM", print.auc = TRUE, col = "navy")
-plot(roc_svm, main = "ROC Curve: SVM", print.auc = TRUE, col = "navy")
+plot(roc_svm, main = "ROC Curve: SVM w. Radial Kernel", print.auc = TRUE, col = "navy")
 
 # All Together Now
 plot(roc_knn, main = "ROC Curve: All Classification Models", col = "navy") 
 lines(roc_rf, col = "magenta")
 lines(roc_gbm, col = "green")
 lines(roc_svm, col = "brown") 
-legend("bottomright", legend = c("KNN", "RF","GBM","SVM"), # Put AUCs in here
+legend("bottomright", legend = c("KNN: 0.503", "RF: 0.567","GBM: 0.567",
+                                 "SVM: 0.562"), # Put AUCs in here
        col = c("navy", "magenta","green","brown"), 
        lwd = 2, cex = 0.6,
-       lty = c(1, 1), title = "Lines")
+       lty = c(1, 1), title = "Lines & AUC")
 
 pROC::auc(roc_knn) 
 pROC::auc(roc_rf) 
