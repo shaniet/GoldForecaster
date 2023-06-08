@@ -236,7 +236,7 @@ mean(lin.reg.mse)
 library(glmnet)
 
 # Convert the data to matrix format
-X <- as.matrix(gold.r[, -ncol(gold.r)]) # takes out last column, sentiment?
+X <- as.matrix(gold.r[, -1]) # takes out response variable
 y <- as.matrix(gold.r$PercChangeForc)
 
 # Create a matrix of cross-validation folds
@@ -248,10 +248,10 @@ lassoMSEs <- c()
 # Perform ridge and lasso regression with cross-validation
 for (i in 1:length(folds)) {
   # Split the data into training and testing sets based on the current fold
-  trainData <- X[-folds[[i]], ] # training and testing are switched here
-  trainLabels <- y[-folds[[i]]]
-  testData <- X[folds[[i]], ]
-  testLabels <- y[folds[[i]]]
+  trainData <- X[folds[[i]], ] # training and testing are switched here
+  trainLabels <- y[folds[[i]]]
+  testData <- X[-folds[[i]], ]
+  testLabels <- y[-folds[[i]]]
   
   # Perform ridge regression
   ridgeModel <- cv.glmnet(trainData, trainLabels, alpha = 0)
@@ -552,6 +552,71 @@ mean(boost.mse)
 
 ### Neural Network
 ```{r}
+library(keras)
+library(tensorflow)
+# Define the parameter grid
+layers_grid <- c(1, 2, 3)  # Different numbers of layers
+neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
+
+# Initialize variables to store the best configuration and MSE
+best_layers <- NULL
+best_neurons <- NULL
+best_mse <- Inf
+
+# Perform grid search
+for (layers in layers_grid) {
+  for (neurons in neurons_grid) {
+    # Create the sequential model
+    model <- keras_model_sequential()
+    model %>%
+      layer_dense(units = neurons, activation = "relu", input_shape = ncol(gold.r) - 1)
+    for (i in seq(layers - 1)) {
+      model %>%
+        layer_dense(units = neurons, activation = "relu")
+    }
+    model %>%
+      layer_dense(units = 1)
+
+    # Compile the model
+    model %>% compile(
+      loss = "mean_squared_error",
+      optimizer = "adam",
+      metrics = c("mse")
+    )
+
+    # Train the model
+    history <- model %>% fit(
+      x = as.matrix(gold.r[, -ncol(gold.r)]),
+      y = as.matrix(gold.r$PercChangeForc),
+      epochs = 10,
+      batch_size = 32,
+      validation_split = 0.2
+    )
+
+    # Calculate the MSE
+    mse <- history$metrics$val_mse[length(history$metrics$val_mse)]
+
+    # Check if the current configuration is the best so far
+    if (mse < best_mse) {
+      best_layers <- layers
+      best_neurons <- neurons
+      best_mse <- mse
+      best_history <- history
+
+    }
+  }
+}
+
+# Print the best configuration and MSE
+print(paste("Best Layers:", best_layers))
+print(paste("Best Neurons:", best_neurons))
+print(paste("Best MSE:", best_mse))
+
+# Plot the training history of the best model
+plot(best_history$metrics$loss, type = "l", col = "blue", xlab = "Epoch", ylab = "Loss",
+     main = "Training History - Best Model")
+lines(best_history$metrics$val_loss, col = "red")
+legend("topright", legend = c("Training Loss", "Validation Loss"), col = c("blue", "red"), lty = 1)
 
 ```
 
