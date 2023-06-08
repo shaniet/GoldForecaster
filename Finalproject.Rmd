@@ -212,7 +212,7 @@ for (i in 1:length(folds)){
   gold.r.test <- gold.r[-folds[[i]],]
   pcr.mdl.r <- pcr(PercChangeForc ~., data = gold.r.train, scale = TRUE, 
                    validation = "CV")
-  validationplot(pcr.mdl.r, val.type = "MSEP")
+  validationplot(pcr.mdl.r, val.type = "MSEP", main = paste0("Percent Change in Gold Prices: MSE Performance - Fold ",i), xlab = "Number of Components")
 } 
 
 # Set Up Data Frame for Receiving Error Vectors
@@ -254,7 +254,12 @@ print(pcr.err.df)
 
 # Locate Minimium MSE in Components
 min.pcr.error.rn <- which(pcr.err.df$`MSE Means` == min(pcr.err.df$`MSE Means`))
-print(pcr.err.df[min.pcr.error.rn,])
+print(pcr.err.df[min.pcr.error.rn,]) 
+
+# Additional Plots for Presentation: Along with MSE Plots
+ggplot(data = pcr.err.df, aes(x = Components, y = `MSE Means`))+
+  geom_line(color = "navy")+labs(x = "Number of Components", y = "Test MSE",
+       title = "Five Fold Cross Validation: Components Performance")
 ```
 
 After running five fold cross validation, we find that setting 21 components in our principal components regression optimally minimizes mean squared error. From running cross validation, our model returns an average mean squared error of **20.97**. 
@@ -438,7 +443,7 @@ mean(boost.mse)
 # Classification Problem
 
 
-### Some preliminary boundry visuals
+### Some preliminary boundary visuals
 ```{r}
 library(ggplot2)
 # install.packages("gridExtra")
@@ -546,7 +551,39 @@ print(knn_perf_df)
 
 # Find Minimum Error for K Parameter
 knn_min_rn <- which.min(knn_perf_df$`Error Means`)
-knn_perf_df[knn_min_rn,]
+knn_perf_df[knn_min_rn,] 
+
+### Additional Plots for Presentation ###
+
+# Five Fold CV Error Score Against Number of K Nearest Neighbors 
+knn.point <- data.frame(`K Parameter` = 13, `Error Means` = 0.4133)
+
+ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
+         geom_line(color = "navy")+
+         labs(x = "Number of K Nearest Neighbors", 
+              y = "Misclassification Error Score",
+              title = "KNN Five Fold CV Performance")+
+  geom_text(data = knn.point, 
+            aes(x = K.Parameter, y = Error.Means, label = Error.Means),
+             vjust = 1.3, color = "navy", size = 3)
+
+# Create a Scatter Plot for Fifth Fold Test Points
+plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
+     col = ifelse(gold.c.test$Binary.PercChange == 1, "salmon","navy"), 
+     pch = 1, xlab = "Lagged MoM Percentage Change in Gold Prices", 
+     ylab = "Fed Funds Rate", main = "Gold Price Binary Classifier")
+legend("bottomright", legend = c("1 as > 0.1%", "0 as < 0.1%"),
+       pch = c(1,1), col = c("salmon", "navy"), cex = 0.7)
+
+# Create Scatter Plot with Fifth Fold Test Points & KNN Predictions
+plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
+     col = ifelse(gold.c.test$Binary.PercChange == 1, "salmon","navy"), 
+     pch = 1, xlab = "Lagged MoM Percentage Change in Gold Prices", 
+     ylab = "Fed Funds Rate", main = "Gold Price Binary Classifier with KNN Predictions")
+points(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate,
+       col = ifelse(knn.mdl == 1, "salmon","navy"), pch = 4) 
+legend("bottomright", legend = c("Pred. 1 as > 0.1%", "Pred. 0 as < 0.1%"), 
+       pch = c(4,4), col = c("salmon", "navy"), cex = 0.7)
 ```
 
 Both our train hyper-grid search function and manual grid search show that the optimal number for K parameters (the number of neighboring observations) is 13. In other words, 13 observations closest to our observation of interest will be checked to see whether they identify with class 1 (above 0.1% gold price growth) or class 0 (below 0.1% gold price growth). The majority of these 13 classes will be assigned to the observation of interest. Using this algorithm, we get a mis-classification error (on average) of **41.33%**. This is below 50% and is considered better than random chance. Our manual fit is also similar to running an optimized KNN model on five fold cross validation, so we don't have to run that again. The mis-classification error of 41.33%, thus, is a comparable number to other approaches (as we run five fold cross validation for them). 
@@ -603,18 +640,33 @@ for (i in 1:length(folds)){
 # Clean Up Data Frame
 rf.perf.df$Means <- rowMeans(rf.perf.df[,-c(1,2)]) 
 colnames(rf.perf.df) <- c("Mtry Parameters", "Number of Trees", "Fold 1", "Fold 2",
-                          "Fold 3", "Fold 4", "Fold 5", "Error Means")
+                          "Fold 3", "Fold 4", "Fold 5", "FF CV Errors")
 print(rf.perf.df) 
 
 # Find Bagging Misclassification Errors
 rf.perf.df[rf.perf.df$`Mtry Parameters` == 22,]
 
 # Find Minimum Misclassification Error
-rf_min_rn <- which.min(rf.perf.df$`Error Means`)
-rf.perf.df[rf_min_rn,]
+rf_min_rn <- which.min(rf.perf.df$`FF CV Errors`)
+rf.perf.df[rf_min_rn,] 
+
+### Additional Plots for Presentation ### 
+
+# Variable Importance
+rf.mdl.pres.try <- randomForest(as.factor(Binary.PercChange) ~.,
+                             data = gold.c, mtry = 18,
+                             ntree = 200, importance = TRUE) 
+varImpPlot(rf.mdl.pres, cex = 0.55, main = "Random Forest Variable Importance") 
+
+# Grid Plot of MSE Performance through Five Fold
+ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of Trees`,
+                       size = `FF CV Errors`))+geom_point(col = "navy")+
+  labs(x = "Number of Variables Sampled (Mtry)", 
+       title = "Classification Random Forest Performance")
+
 ```
 
-Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 9 and number of trees = 300) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **44.76%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.57%-46.10*%**. The bagging algorithms were not optimal in our classification setting. 
+Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 18 and number of trees = 200) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **42.28%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.76%-47.42*%**. The bagging algorithms were not optimal in our classification setting. 
 
 ### Boosting (Arif)
 ```{r}
@@ -744,7 +796,17 @@ print(svm.poly.df)
 
 # Find Minimized Misclassification Error and Optimal Parameters for Polynomial Kernel
 svm.poly.min <- which(svm.poly.df$`Average Error` == min(svm.poly.df$`Average Error`))
-print(svm.poly.df[svm.poly.min,])
+print(svm.poly.df[svm.poly.min,]) 
+
+### Additional Plots for Presentation ###
+
+# Grid Search Plot
+ggplot(svm.poly.df, aes(x = `Cost Parameter`, y = `Degree Parameter`,
+                       size = `Average Error`))+
+  geom_point(col = "navy")+labs(x = "Cost Parameter", y = "Degree Parameter", 
+       title = "Support Vector Machines Performance")
+
+print(svm.poly.df)
 ```
 
 We performed a grid search for the most optimal cost and degree parameters within polynomial kernels and found that the most optimal parameters are a cost value of 100 and a degree value of 2-5. The cost parameter of 100 seemed to be very good at minimizing misclassification error, regardless of polynomial degree. After running five fold cross validation with our grid search, we find that a cost parameter of 100 returned a misclassification error of **42.48%**. The support vector machine model with polynomial kernel outperforms our tree models (gradient boosting, random forests, and bagging) but still underperforms our KNN model. 
@@ -773,7 +835,8 @@ for (i in 1:length(folds)){
   for (j in 1:nrow(svm.radial.df)){
     
     # Fit Model wtih Varying Parameters: First Column = Cost, Second = Degree
-    svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
+    svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train, 
+                   kernel = "radial",
                    cost = svm.radial.df[j,1], gamma = svm.radial.df[j,2])
     
     # Predictions of Class (Binary Classifier)
@@ -804,14 +867,100 @@ print(svm.radial.df)
 
 # Find Minimized Misclassification Error and Optimal Parameters for Polynomial Kernel
 svm.radial.min <- which(svm.radial.df$`Average Error` == min(svm.radial.df$`Average Error`))
-print(svm.radial.df[svm.radial.min,])
+print(svm.radial.df[svm.radial.min,]) 
+
+# SVM Plots: Maybe Don't Use This
+svm.radial.full <- svm(as.factor(Binary.PercChange) ~., data = gold.c, 
+                       kernel = "radial", cost = 1, gamma = 0.1)
+plot(svm.radial.full, gold.c, PercChangeLag1 ~ FedFundsRate, 
+     xlab = "Fed Funds Rate (Monthly Average)", ylab = "Gold Price Lagged Percent Change")
 ```
 
 After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model.  
 
-### ROC Graph for Classificaiton Models
+### ROC Graph for Classification Models
 ```{r}
+# Data Frame for Predicted Probability Values & Actual Values
+empty_vector <- 1:nrow(gold.c)
+roc.df <- data.frame(empty_vector)
 
+# Vectors for Predicted Models/Actual observations: Run This Before Each Fold
+gold.c.classes <- vector()
+lda.pred.vector <- vector()
+qda.pred.vector <- vector()
+knn.pred.vector <- vector()
+rf.pred.vector <- vector()
+boost.pred.vector <- vector()
+svm.pred.vector <- vector()
+
+# Fitting the Models with Five Folds
+for (i in 1:length(folds)){
+  # Set Folds
+  train_index <- folds[[i]]
+  gold.c.train <- gold.c[train_index,]
+  gold.c.test <- gold.c[-train_index,]  
+  
+  # Append Actual Observations to a Vector
+  gold.c.classes <- append(gold.c.classes, gold.c.test$Binary.PercChange)
+  
+  # Set Inputs for KNN Function With Each Fold
+  train_features <- gold.c.train[,-length(gold.c.train)]
+  test_features <- gold.c.test[,-length(gold.c.train)]
+  train_class <- gold.c.train$Binary.PercChange
+  
+  # Fit Various Models to Folds 
+  knn.mdl <- knn(train_features, test_features, train_class, k = 13, prob = TRUE)
+  rf.model <- randomForest(as.factor(Binary.PercChange) ~.,
+                             data = gold.c.train, mtry = 18,
+                             ntree = 200)
+  gbm.mdl.c <- gbm(Binary.PercChange ~., data = gold.c.train,
+                   distribution = "bernoulli", shrinkage = 0.075,
+                   n.trees = 200, interaction.depth = 10, 
+                   n.minobsinnode = 15)
+  svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
+                 kernel = "radial", cost = 1, gamma = 0.1, prob = TRUE)
+  
+  # Predict on Various Models
+  knn.pred <- attr(knn.mdl, "prob")
+  rf.pred <- predict(rf.model, gold.c.test, type = "prob")
+  gbm.pred <- predict(gbm.mdl.c, gold.c.test, type = "response")
+  svm.pred <- predict(svm.mdl, gold.c.test, prob = TRUE)
+  
+  # Append Predictions to Predict Vectors
+  knn.pred.vector <- append(knn.pred.vector, knn.pred) 
+  rf.pred.vector <- append(rf.pred.vector, rf.pred[,2])
+  boost.pred.vector <- append(boost.pred.vector, gbm.pred)
+  svm.pred.vector <- append(svm.pred.vector, svm.pred)
+  
+}
+ 
+# ROC Curves
+library(ROCR)
+roc_knn <- pROC::roc(gold.c.classes, knn.pred.vector)
+roc_rf <- pROC::roc(gold.c.classes, rf.pred.vector)
+roc_gbm <- pROC::roc(gold.c.classes, boost.pred.vector)
+roc_svm <- pROC::roc(gold.c.classes, svm.pred.vector)
+
+# Individual Plots
+plot(roc_knn, main = "ROC Curve", print.auc = TRUE, col = "navy") 
+plot(roc_rf, main = "ROC Curve", print.auc = TRUE, col = "navy")
+plot(roc_gbm, main = "ROC Curve", print.auc = TRUE, col = "navy")
+plot(roc_svm, main = "ROC Curve", print.auc = TRUE, col = "navy")
+
+# All Together Now
+plot(roc_knn, main = "ROC Curve", col = "navy") 
+lines(roc_rf, col = "magenta")
+lines(roc_gbm, col = "green")
+lines(roc_svm, col = "brown") 
+legend("bottomright", legend = c("KNN", "RF","GBM","SVM"), 
+       col = c("navy", "magenta","green","brown"), 
+       lwd = 2, cex = 0.6,
+       lty = c(1, 1), title = "Lines")
+
+pROC::auc(roc_knn) 
+pROC::auc(roc_rf) 
+pROC::auc(roc_gbm) 
+pROC::auc(roc_svm) 
 ```
 
 
