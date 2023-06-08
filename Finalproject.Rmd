@@ -501,7 +501,7 @@ knn_perf_df[knn_min_rn,]
 # Five Fold CV Error Score Against Number of K Nearest Neighbors 
 knn.point <- data.frame(`K Parameter` = 13, `Error Means` = 0.4133)
 
-ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
+knn.ffcv.plot <- ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
          geom_line(color = "navy")+
          labs(x = "Number of K Nearest Neighbors", 
               y = "Misclassification Error Score",
@@ -509,6 +509,10 @@ ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
   geom_text(data = knn.point, 
             aes(x = K.Parameter, y = Error.Means, label = Error.Means),
              vjust = 1.3, color = "navy", size = 3)
+knn.ffcv.plot
+
+ggsave(file = "~/Desktop/knnffcv.png", plot = knn.ffcv.plot, width = 10,
+       height = 6, bg = "white")
 
 # Create a Scatter Plot for Fifth Fold Test Points
 plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
