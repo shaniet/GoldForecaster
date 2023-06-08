@@ -177,7 +177,7 @@ boruta.gold.c <- Boruta(boruta.c.features, as.factor(gold.c$Binary.PercChange))
 ```{r, echo = FALSE}
 # Plots
 plot(boruta.gold, main = "Boruta Algorithm for Gold Pricing Regression Problem",
-     las = 3)
+     las = 3, cex.axis = 0.5, xlab = "")
 plot(boruta.gold.c, main = "Boruta Algorithm for Gold Pricing Classification Problem",
      las = 3)
 
