@@ -730,14 +730,14 @@ rf.mdl.pres.try <- randomForest(as.factor(Binary.PercChange) ~.,
 varImpPlot(rf.mdl.pres, cex = 0.55, main = "Random Forest Variable Importance") 
 
 # Grid Plot of MSE Performance through Five Fold
-ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of Trees`,
-                       size = `FF CV Errors`))+geom_point(col = "navy")+
+classif.rf.plot <- ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of Trees`,size = `FF CV Errors`))+geom_point(col = "navy")+
   labs(x = "Number of Variables Sampled (Mtry)", 
        title = "Classification Random Forest Performance")
 
+ggsave(file = "~/Desktop/classifrfplot.png", plot = classif.rf.plot, width = 10, height = 6, bg = "white")
 ```
 
-Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 18 and number of trees = 200) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **42.28%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.76%-47.42*%**. The bagging algorithms were not optimal in our classification setting. 
+Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 18 and number of trees = 200) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **42.28%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.76%-47.42%**. The bagging algorithms were not optimal in our classification setting. 
 
 ### Boosting (Arif)
 ```{r}
@@ -872,10 +872,13 @@ print(svm.poly.df[svm.poly.min,])
 ### Additional Plots for Presentation ###
 
 # Grid Search Plot
-ggplot(svm.poly.df, aes(x = `Cost Parameter`, y = `Degree Parameter`,
+svm.plot.poly <- ggplot(svm.poly.df, aes(x = `Cost Parameter`, y = `Degree Parameter`,
                        size = `Average Error`))+
   geom_point(col = "navy")+labs(x = "Cost Parameter", y = "Degree Parameter", 
-       title = "Support Vector Machines Performance")
+       title = "Support Vector Machines with Polynomial Kernel Performance")
+svm.plot.poly 
+
+ggsave(file = "~/Desktop/svmplotpoly.png", plot = svm.plot.poly, width = 10, height = 6, bg = "white")
 
 print(svm.poly.df)
 ```
@@ -886,7 +889,7 @@ We performed a grid search for the most optimal cost and degree parameters withi
 ### Radial Kernel: Grid Search ###
 
 # Create Radial Grid: First Column is Cost, Second Column is Degree
-svm.param.c.radial <- expand.grid(cost = c(0.1,0.5,1,2,5,8,10,100),
+svm.param.c.radial <- expand.grid(cost = c(0.1,0.5,1,2,5,8,10),
                                 gamma = c(0.1,0.5,1,2,5,8,10))
 
 # Create Data Frame to Store Misclassification Errors
@@ -940,9 +943,20 @@ print(svm.radial.df)
 svm.radial.min <- which(svm.radial.df$`Average Error` == min(svm.radial.df$`Average Error`))
 print(svm.radial.df[svm.radial.min,]) 
 
-# SVM Plots: Maybe Don't Use This
+# SVM Plots: Maybe Don't Use This 
+svm.plot.radial <- ggplot(svm.radial.df, aes(x = `Cost Parameter`, y = `Gamma Parameter`,
+                       size = `Average Error`))+
+  geom_point(col = "navy")+labs(x = "Cost Parameter", y = "Gamma Parameter", 
+       title = "Support Vector Machines with Radial Kernel Performance")
+
+svm.plot.radial
+
+# Save Plot
+ggsave(file = "~/Desktop/svmplotradial.png", plot = svm.plot.radial, width = 10, height = 6, bg = "white")
+
 svm.radial.full <- svm(as.factor(Binary.PercChange) ~., data = gold.c, 
                        kernel = "radial", cost = 1, gamma = 0.1)
+
 plot(svm.radial.full, gold.c, PercChangeLag1 ~ FedFundsRate, 
      xlab = "Fed Funds Rate (Monthly Average)", ylab = "Gold Price Lagged Percent Change")
 ```
@@ -1013,17 +1027,17 @@ roc_gbm <- pROC::roc(gold.c.classes, boost.pred.vector)
 roc_svm <- pROC::roc(gold.c.classes, svm.pred.vector)
 
 # Individual Plots
-plot(roc_knn, main = "ROC Curve", print.auc = TRUE, col = "navy") 
-plot(roc_rf, main = "ROC Curve", print.auc = TRUE, col = "navy")
-plot(roc_gbm, main = "ROC Curve", print.auc = TRUE, col = "navy")
-plot(roc_svm, main = "ROC Curve", print.auc = TRUE, col = "navy")
+plot(roc_knn, main = "ROC Curve: KNN", print.auc = TRUE, col = "navy") 
+plot(roc_rf, main = "ROC Curve: Random Forest", print.auc = TRUE, col = "navy")
+plot(roc_gbm, main = "ROC Curve: GBM", print.auc = TRUE, col = "navy")
+plot(roc_svm, main = "ROC Curve: SVM", print.auc = TRUE, col = "navy")
 
 # All Together Now
-plot(roc_knn, main = "ROC Curve", col = "navy") 
+plot(roc_knn, main = "ROC Curve: All Classification Models", col = "navy") 
 lines(roc_rf, col = "magenta")
 lines(roc_gbm, col = "green")
 lines(roc_svm, col = "brown") 
-legend("bottomright", legend = c("KNN", "RF","GBM","SVM"), 
+legend("bottomright", legend = c("KNN", "RF","GBM","SVM"), # Put AUCs in here
        col = c("navy", "magenta","green","brown"), 
        lwd = 2, cex = 0.6,
        lty = c(1, 1), title = "Lines")
