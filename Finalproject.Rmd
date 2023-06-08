@@ -554,6 +554,7 @@ mean(boost.mse)
 ```{r}
 library(keras)
 library(tensorflow)
+library(reticulate) 
 # Define the parameter grid
 layers_grid <- c(1, 2, 3)  # Different numbers of layers
 neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
@@ -670,8 +671,90 @@ ggsave(file = "~/Desktop/grid_plot.png", plot = grid.plot, width = 10, height = 
 ```
 
 
-### LDA (Shanie)
+### LDA/QDA (Shanie)
 ```{r}
+# Load required libraries
+library(ROCR)
+library(ggplot2)
+library(MASS)
+
+# Fit LDA model
+ldaModel <- lda(as.factor(Binary.PercChange) ~ ., data = gold.c)
+
+# Fit QDA model using selected variables
+qdaFeatures <- c("PercChangeLag1", "Indus.Prod.Ind", "FedFundsRate")
+qdaModel <- qda(as.factor(Binary.PercChange) ~ ., data = gold.c[, c(qdaFeatures, "Binary.PercChange")])
+
+# Compute predicted probabilities
+ldaPred <- predict(ldaModel, newdata = gold.c)$posterior[, 2]  # Use class 1 posterior probability
+qdaPred <- predict(qdaModel, newdata = gold.c[, qdaFeatures])$posterior[, 2]  # Use class 1 posterior probability
+
+# Create a prediction object for LDA
+ldaPrediction <- prediction(ldaPred, gold.c$Binary.PercChange)
+
+# Create a prediction object for QDA
+qdaPrediction <- prediction(qdaPred, gold.c$Binary.PercChange)
+
+# Create ROC curve for LDA
+ldaROC <- performance(ldaPrediction, "tpr", "fpr")
+ldaAUC <- performance(ldaPrediction, "auc")@y.values[[1]]
+
+# Create ROC curve for QDA
+qdaROC <- performance(qdaPrediction, "tpr", "fpr")
+qdaAUC <- performance(qdaPrediction, "auc")@y.values[[1]]
+
+# Plot ROC curves
+plot(ldaROC, col = "blue", main = "ROC Curve - LDA vs QDA")
+plot(qdaROC, col = "red", add = TRUE)
+legend("bottomright", legend = c(paste0("LDA (AUC = ", ldaAUC, ")"), paste0("QDA (AUC = ", qdaAUC, ")")), col = c("blue", "red"), lty = 1)
+
+# Initialize vectors to store accuracy scores
+ldaAccuracies <- c()
+qdaAccuracies <- c()
+
+# Perform cross-validation
+for (i in 1:length(folds)) {
+  # Split the data into training and testing sets based on the current fold
+  trainData <- gold.c[folds[[i]], ]
+  testData <- gold.c[-folds[[i]], ]
+  
+  # Perform LDA
+  ldaModel <- lda(as.factor(Binary.PercChange) ~ ., data = trainData)
+  ldaPredictions <- predict(ldaModel, newdata = testData)$class
+  
+  # Calculate accuracy for LDA
+  ldaAccuracy <- sum(ldaPredictions == testData$Binary.PercChange) / length(testData$Binary.PercChange)
+  ldaAccuracies <- c(ldaAccuracies, ldaAccuracy)
+  
+  # Perform QDA using selected variables
+  qdaFeatures <- c("PercChangeLag1", "Indus.Prod.Ind", "FedFundsRate")
+  qdaModel <- qda(as.factor(Binary.PercChange) ~ ., data = trainData[, c(qdaFeatures, "Binary.PercChange")])
+  qdaPredictions <- predict(qdaModel, newdata = testData[, qdaFeatures])$class
+  
+  # Calculate accuracy for QDA
+  qdaAccuracy <- sum(qdaPredictions == testData$Binary.PercChange) / length(testData$Binary.PercChange)
+  qdaAccuracies <- c(qdaAccuracies, qdaAccuracy)
+}
+
+
+# Create a data frame with accuracy scores
+accuracyData <- data.frame(Model = rep(c("LDA", "QDA"), each = length(folds)),
+                           Accuracy = c(ldaAccuracies, qdaAccuracies))
+
+# Plot the violin plot
+ggplot(accuracyData, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_violin() +
+  xlab("Model") +
+  ylab("Accuracy") +
+  ggtitle("Comparison of LDA and QDA Accuracy") +
+  scale_fill_manual(values = c("blue", "red"))
+# Calculate mean accuracy scores
+ldaMeanAccuracy <- mean(ldaAccuracies)
+qdaMeanAccuracy <- mean(qdaAccuracies)
+
+# Print the mean accuracy scores
+print(paste("LDA Mean Accuracy:", ldaMeanAccuracy))
+print(paste("QDA Mean Accuracy:", qdaMeanAccuracy))
 
 ```
 
@@ -1080,7 +1163,94 @@ plot(svm.radial.full, gold.c, PercChangeLag1 ~ FedFundsRate,
      xlab = "Fed Funds Rate (Monthly Average)", ylab = "Gold Price Lagged Percent Change")
 ```
 
-After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model.  
+After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model. 
+
+### Neural Network
+```{r}
+#py_install("tensorflow")
+library(keras)
+#reticulate::install_miniconda()
+reticulate::py_install("tensorflow")
+reticulate::py_install("keras")
+
+# Define the parameter grid
+layers_grid <- c(1, 2, 3)  # Different numbers of layers
+neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
+
+# Initialize variables to store the best configuration and accuracy
+best_layers <- NULL
+best_neurons <- NULL
+best_accuracy <- 0
+
+# Perform grid search
+for (layers in layers_grid) {
+  for (neurons in neurons_grid) {
+    # Create the sequential model
+    model <- keras_model_sequential()
+    model %>%
+      layer_dense(units = neurons, activation = "relu", input_shape = ncol(gold.c) - 1)
+    for (i in seq(layers - 1)) {
+      model %>%
+        layer_dense(units = neurons, activation = "relu")
+    }
+    model %>%
+      layer_dense(units = 1, activation = "sigmoid")
+
+    # Compile the model
+    model %>% compile(
+      loss = "binary_crossentropy",
+      optimizer = "adam",
+      metrics = c("accuracy")
+    )
+
+    # Train the model
+    history <- model %>% fit(
+      x = as.matrix(gold.c[, -ncol(gold.c)]),
+      y = as.matrix(gold.c$Binary.PercChange),
+      epochs = 10,
+      batch_size = 32,
+      validation_split = 0.2
+    )
+
+    # Calculate the accuracy
+    accuracy <- history$metrics$val_accuracy[length(history$metrics$val_accuracy)]
+
+    # Check if the current configuration is the best so far
+    if (accuracy > best_accuracy) {
+      best_layers <- layers
+      best_neurons <- neurons
+      best_accuracy <- accuracy
+      best_history <- history
+
+    }
+  }
+}
+
+# Print the best configuration and accuracy
+print(paste("Best Layers:", best_layers))
+print(paste("Best Neurons:", best_neurons))
+print(paste("Best Accuracy:", best_accuracy))
+
+# Plot the training history of the best model
+plot(best_history$metrics$accuracy, type = "l", col = "blue", xlab = "Epoch", ylab = "Accuracy",
+     main = "Training History - Best Model")
+lines(best_history$metrics$val_accuracy, col = "red")
+legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"), col = c("blue", "red"), lty = 1)
+
+
+library(pROC)
+
+# Predict probabilities
+y_pred <- model %>% predict(as.matrix(gold.c[, -ncol(gold.c)]))
+
+# Compute ROC curve
+roc_data <- roc(gold.c$Binary.PercChange, y_pred)
+
+# Plot ROC curve
+plot(roc_data, main = "ROC Curve", print.auc = TRUE)
+
+```
+
 
 ### ROC Graph for Classification Models
 ```{r}
@@ -1111,6 +1281,7 @@ for (i in 1:length(folds)){
   train_features <- gold.c.train[,-length(gold.c.train)]
   test_features <- gold.c.test[,-length(gold.c.train)]
   train_class <- gold.c.train$Binary.PercChange
+  qdaFeatures <- c("PercChangeLag1", "Indus.Prod.Ind", "FedFundsRate")
   
   # Fit Various Models to Folds 
   knn.mdl <- knn(train_features, test_features, train_class, k = 13, prob = TRUE)
@@ -1122,19 +1293,27 @@ for (i in 1:length(folds)){
                    n.trees = 200, interaction.depth = 10, 
                    n.minobsinnode = 15)
   svm.mdl <- svm(as.factor(Binary.PercChange) ~., data = gold.c.train,
-                 kernel = "radial", cost = 1, gamma = 0.1, prob = TRUE)
+                 kernel = "radial", cost = 1, gamma = 0.1, prob = TRUE) 
+  ldaModel <- lda(as.factor(Binary.PercChange) ~ ., data = gold.c.train)
+  qdaModel <- qda(as.factor(Binary.PercChange) ~ ., data =
+                    gold.c.train[,c(qdaFeatures, "Binary.PercChange")])
+  
   
   # Predict on Various Models
   knn.pred <- attr(knn.mdl, "prob")
   rf.pred <- predict(rf.model, gold.c.test, type = "prob")
   gbm.pred <- predict(gbm.mdl.c, gold.c.test, type = "response")
   svm.pred <- predict(svm.mdl, gold.c.test, prob = TRUE)
+  ldaPredictions <- predict(ldaModel, newdata = gold.c.test)$posterior[,2]
+  qdaPredictions <- predict(qdaModel, newdata = gold.c.test[, qdaFeatures])$posterior[,2]
   
   # Append Predictions to Predict Vectors
   knn.pred.vector <- append(knn.pred.vector, knn.pred) 
   rf.pred.vector <- append(rf.pred.vector, rf.pred[,2])
   boost.pred.vector <- append(boost.pred.vector, gbm.pred)
   svm.pred.vector <- append(svm.pred.vector, svm.pred)
+  lda.pred.vector <- append(lda.pred.vector, ldaPredictions)
+  qda.pred.vector <- append(qda.pred.vector, qdaPredictions)
   
 }
  
@@ -1144,21 +1323,27 @@ roc_knn <- pROC::roc(gold.c.classes, knn.pred.vector)
 roc_rf <- pROC::roc(gold.c.classes, rf.pred.vector)
 roc_gbm <- pROC::roc(gold.c.classes, boost.pred.vector)
 roc_svm <- pROC::roc(gold.c.classes, svm.pred.vector)
+roc_lda <- pROC::roc(gold.c.classes, lda.pred.vector)
+roc_qda <- pROC::roc(gold.c.classes, qda.pred.vector)
 
 # Individual Plots
 plot(roc_knn, main = "ROC Curve: KNN", print.auc = TRUE, col = "navy") 
 plot(roc_rf, main = "ROC Curve: Random Forest", print.auc = TRUE, col = "navy")
 plot(roc_gbm, main = "ROC Curve: GBM", print.auc = TRUE, col = "navy")
 plot(roc_svm, main = "ROC Curve: SVM w. Radial Kernel", print.auc = TRUE, col = "navy")
+plot(roc_lda, main = "ROC Curve: LDA Curve", print.auc = TRUE, col = "navy")
+plot(roc_qda, main = "ROC Curve: QDA Curve", print.auc = TRUE, col = "navy")
 
 # All Together Now
 plot(roc_knn, main = "ROC Curve: All Classification Models", col = "navy") 
 lines(roc_rf, col = "magenta")
 lines(roc_gbm, col = "green")
 lines(roc_svm, col = "brown") 
+lines(roc_lda, col = "orange")
+lines(roc_qda, col = "cyan")
 legend("bottomright", legend = c("KNN: 0.503", "RF: 0.567","GBM: 0.567",
-                                 "SVM: 0.562"), # Put AUCs in here
-       col = c("navy", "magenta","green","brown"), 
+                                 "SVM: 0.562", "LDA: 0.518", "QDA: 0.593"), # Put AUCs in here
+       col = c("navy", "magenta","green","brown","orange","cyan"), 
        lwd = 2, cex = 0.6,
        lty = c(1, 1), title = "Lines & AUC")
 
@@ -1168,11 +1353,6 @@ pROC::auc(roc_gbm)
 pROC::auc(roc_svm) 
 ```
 
-
-### Neural Network
-```{r}
-
-```
 
 
 
