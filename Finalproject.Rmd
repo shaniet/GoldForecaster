@@ -1334,6 +1334,13 @@ plot(roc_svm, main = "ROC Curve: SVM w. Radial Kernel", print.auc = TRUE, col = 
 plot(roc_lda, main = "ROC Curve: LDA Curve", print.auc = TRUE, col = "navy")
 plot(roc_qda, main = "ROC Curve: QDA Curve", print.auc = TRUE, col = "navy")
 
+# LDA/QDA
+plot(roc_lda, main = "ROC Curve: LDA & QDA", print.auc = TRUE, col = "navy")
+lines(roc_qda, col = "salmon")
+legend("bottomright", legend = c("LDA: 0.605", "QDA: 0.593"),
+       col = c("navy","salmon"),  lwd = 2, cex = 0.6,
+       lty = c(1, 1), title = "Lines & AUC")
+
 # All Together Now
 plot(roc_knn, main = "ROC Curve: All Classification Models", col = "navy") 
 lines(roc_rf, col = "magenta")
