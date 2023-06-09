@@ -67,7 +67,7 @@ main.hist <- ggplot(gold, aes(x = PercChangeForc)) +
   ggtitle("Percent Change of Gold Price") +
   coord_cartesian(xlim = c(-20, 25))+
   theme_minimal()
-ggsave(file = "~/Desktop/main_hist.png", plot = main.hist, width = 10, height = 6, bg = "white")
+# ggsave(file = "~/Desktop/main_hist.png", plot = main.hist, width = 10, height = 6, bg = "white")
 
 
 
@@ -99,9 +99,9 @@ for (feature in names(gold_histograms)) {
   hist_plots[[feature]] <- hist_plot
 }
 
-grid <- do.call(grid.arrange, c(hist_plots, ncol = 6))
+# grid <- do.call(grid.arrange, c(hist_plots, ncol = 6))
 
-ggsave(file = "~/Desktop/histogram_grid.png", plot = grid, width = 31.5, height = 14.4, bg = "white")
+# ggsave(file = "~/Desktop/histogram_grid.png", plot = grid, width = 31.5, height = 14.4, bg = "white")
 
 ```
 
@@ -477,7 +477,7 @@ reg.tree.mse.plot <- ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number o
   theme_classic()
 
 
-ggsave(file = "~/Desktop/reg_plot.png", plot = reg.tree.mse.plot, width = 9, height = 6, bg = "white")
+# ggsave(file = "~/Desktop/reg_plot.png", plot = reg.tree.mse.plot, width = 9, height = 6, bg = "white")
 
 ```
 
@@ -658,10 +658,10 @@ plot4 <- ggplot(gold.c, aes(x = NFCI, y = Indus.Prod.Ind, color = factor(Binary.
   theme_linedraw() +
   theme(legend.position = "none")
 
-grid.plot <- grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
-grid.plot
+# grid.plot <- grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
+# grid.plot
 
-ggsave(file = "~/Desktop/grid_plot.png", plot = grid.plot, width = 10, height = 6, bg = "white")
+# ggsave(file = "~/Desktop/grid_plot.png", plot = grid.plot, width = 10, height = 6, bg = "white")
 
 ```
 
@@ -827,8 +827,8 @@ knn.ffcv.plot <- ggplot(knn_perf_df, aes(x = `K Parameter`, y = `Error Means`))+
              vjust = 1.3, color = "navy", size = 3)
 knn.ffcv.plot
 
-ggsave(file = "~/Desktop/knnffcv.png", plot = knn.ffcv.plot, width = 10,
-       height = 6, bg = "white")
+# ggsave(file = "~/Desktop/knnffcv.png", plot = knn.ffcv.plot, width = 10,
+#        height = 6, bg = "white")
 
 # Create a Scatter Plot for Fifth Fold Test Points
 plot(gold.c.test$PercChangeLag1, gold.c.test$FedFundsRate, 
@@ -926,7 +926,7 @@ classif.rf.plot <- ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of 
   labs(x = "Number of Variables Sampled (Mtry)", 
        title = "Classification Random Forest Performance")
 
-ggsave(file = "~/Desktop/classifrfplot.png", plot = classif.rf.plot, width = 10, height = 6, bg = "white")
+# ggsave(file = "~/Desktop/classifrfplot.png", plot = classif.rf.plot, width = 10, height = 6, bg = "white")
 ```
 
 Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 18 and number of trees = 200) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **42.28%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.76%-47.42%**. The bagging algorithms were not optimal in our classification setting. 
@@ -1070,7 +1070,7 @@ svm.plot.poly <- ggplot(svm.poly.df, aes(x = `Cost Parameter`, y = `Degree Param
        title = "Support Vector Machines with Polynomial Kernel Performance")
 svm.plot.poly 
 
-ggsave(file = "~/Desktop/svmplotpoly.png", plot = svm.plot.poly, width = 10, height = 6, bg = "white")
+# ggsave(file = "~/Desktop/svmplotpoly.png", plot = svm.plot.poly, width = 10, height = 6, bg = "white")
 
 print(svm.poly.df)
 ```
@@ -1144,7 +1144,7 @@ svm.plot.radial <- ggplot(svm.radial.df, aes(x = `Cost Parameter`, y = `Gamma Pa
 svm.plot.radial
 
 # Save Plot
-ggsave(file = "~/Desktop/svmplotradial.png", plot = svm.plot.radial, width = 10, height = 6, bg = "white")
+# ggsave(file = "~/Desktop/svmplotradial.png", plot = svm.plot.radial, width = 10, height = 6, bg = "white")
 
 svm.radial.full <- svm(as.factor(Binary.PercChange) ~., data = gold.c, 
                        kernel = "radial", cost = 1, gamma = 0.1)
