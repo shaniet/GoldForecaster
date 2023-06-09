@@ -195,7 +195,7 @@ folds <- createFolds(gold.r$PercChangeForc, k = 5, returnTrain = TRUE)
 
 # Regression
 
-### OLS (Jon)
+### OLS 
 ```{r}
 set.seed(123)
 # Run linear regression
@@ -292,7 +292,7 @@ title("Lasso Regression Coefficient Profiles")
 ```
 
 
-### Principal Components Regression (Arif)
+### Principal Components Regression
 
 For principal components regression, we'll optimize for the number of components in our regression by minimizing mean squared errors in predicting forecast percent change. We'll use a validation plot to see what number of components minimizes errors - in this case MSEP scores. 
 
@@ -357,7 +357,7 @@ ggplot(data = pcr.err.df, aes(x = Components, y = `MSE Means`))+
 
 After running five fold cross validation, we find that setting 21 components in our principal components regression optimally minimizes mean squared error. From running cross validation, our model returns an average mean squared error of **20.97**. 
 
-### Random Forest + Bagging (Jon)
+### Random Forest + Bagging
 ```{r}
 library(gbm)
 set.seed(123)
@@ -485,7 +485,7 @@ ggsave(file = "~/Desktop/reg_plot.png", plot = reg.tree.mse.plot, width = 9, hei
 
 ```
 
-### Boosting (Jon)
+### Boosting
 ```{r}
 set.seed(123)
 library(caret)
@@ -551,83 +551,82 @@ mean(boost.mse)
 
 
 ### Neural Network
+
+Disclaimer: The neural network models ran on one of our markdown files, but can't on this one. In our final presentation, we added our findings from our neural network model. We won't run it in this document because it won't knit. 
+
 ```{r}
-library(keras)
-library(tensorflow)
-library(reticulate) 
-# Define the parameter grid
-layers_grid <- c(1, 2, 3)  # Different numbers of layers
-neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
-
-# Initialize variables to store the best configuration and MSE
-best_layers <- NULL
-best_neurons <- NULL
-best_mse <- Inf
-
-# Perform grid search
-for (layers in layers_grid) {
-  for (neurons in neurons_grid) {
-    # Create the sequential model
-    model <- keras_model_sequential()
-    model %>%
-      layer_dense(units = neurons, activation = "relu", input_shape = ncol(gold.r) - 1)
-    for (i in seq(layers - 1)) {
-      model %>%
-        layer_dense(units = neurons, activation = "relu")
-    }
-    model %>%
-      layer_dense(units = 1)
-
-    # Compile the model
-    model %>% compile(
-      loss = "mean_squared_error",
-      optimizer = "adam",
-      metrics = c("mse")
-    )
-
-    # Train the model
-    history <- model %>% fit(
-      x = as.matrix(gold.r[, -ncol(gold.r)]),
-      y = as.matrix(gold.r$PercChangeForc),
-      epochs = 10,
-      batch_size = 32,
-      validation_split = 0.2
-    )
-
-    # Calculate the MSE
-    mse <- history$metrics$val_mse[length(history$metrics$val_mse)]
-
-    # Check if the current configuration is the best so far
-    if (mse < best_mse) {
-      best_layers <- layers
-      best_neurons <- neurons
-      best_mse <- mse
-      best_history <- history
-
-    }
-  }
-}
-
-# Print the best configuration and MSE
-print(paste("Best Layers:", best_layers))
-print(paste("Best Neurons:", best_neurons))
-print(paste("Best MSE:", best_mse))
-
-# Plot the training history of the best model
-plot(best_history$metrics$loss, type = "l", col = "blue", xlab = "Epoch", ylab = "Loss",
-     main = "Training History - Best Model")
-lines(best_history$metrics$val_loss, col = "red")
-legend("topright", legend = c("Training Loss", "Validation Loss"), col = c("blue", "red"), lty = 1)
+# library(keras)
+# library(tensorflow)
+# library(reticulate) 
+# # Define the parameter grid
+# layers_grid <- c(1, 2, 3)  # Different numbers of layers
+# neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
+# 
+# # Initialize variables to store the best configuration and MSE
+# best_layers <- NULL
+# best_neurons <- NULL
+# best_mse <- Inf
+# 
+# # Perform grid search
+# for (layers in layers_grid) {
+#   for (neurons in neurons_grid) {
+#     # Create the sequential model
+#     model <- keras_model_sequential()
+#     model %>%
+#       layer_dense(units = neurons, activation = "relu", input_shape = ncol(gold.r) - 1)
+#     for (i in seq(layers - 1)) {
+#       model %>%
+#         layer_dense(units = neurons, activation = "relu")
+#     }
+#     model %>%
+#       layer_dense(units = 1)
+# 
+#     # Compile the model
+#     model %>% compile(
+#       loss = "mean_squared_error",
+#       optimizer = "adam",
+#       metrics = c("mse")
+#     )
+# 
+#     # Train the model
+#     history <- model %>% fit(
+#       x = as.matrix(gold.r[, -ncol(gold.r)]),
+#       y = as.matrix(gold.r$PercChangeForc),
+#       epochs = 10,
+#       batch_size = 32,
+#       validation_split = 0.2
+#     )
+# 
+#     # Calculate the MSE
+#     mse <- history$metrics$val_mse[length(history$metrics$val_mse)]
+# 
+#     # Check if the current configuration is the best so far
+#     if (mse < best_mse) {
+#       best_layers <- layers
+#       best_neurons <- neurons
+#       best_mse <- mse
+#       best_history <- history
+# 
+#     }
+#   }
+# }
+# 
+# # Print the best configuration and MSE
+# print(paste("Best Layers:", best_layers))
+# print(paste("Best Neurons:", best_neurons))
+# print(paste("Best MSE:", best_mse))
+# 
+# # Plot the training history of the best model
+# plot(best_history$metrics$loss, type = "l", col = "blue", xlab = "Epoch", ylab = "Loss",
+#      main = "Training History - Best Model")
+# lines(best_history$metrics$val_loss, col = "red")
+# legend("topright", legend = c("Training Loss", "Validation Loss"), col = c("blue", "red"), lty = 1)
 
 ```
 
-
---------------------------------------------------------------------------------
-
 # Classification Problem
 
-
-### Some preliminary boundary visuals
+### Preliminary boundary visuals
 ```{r}
 library(ggplot2)
 # install.packages("gridExtra")
@@ -671,7 +670,7 @@ ggsave(file = "~/Desktop/grid_plot.png", plot = grid.plot, width = 10, height = 
 ```
 
 
-### LDA/QDA (Shanie)
+### LDA/QDA
 ```{r}
 # Load required libraries
 library(ROCR)
@@ -758,12 +757,7 @@ print(paste("QDA Mean Accuracy:", qdaMeanAccuracy))
 
 ```
 
-### QDA (Shanie)
-```{r}
-
-```
-
-### KNN: Using Optimal Train (Arif)
+### KNN: Using Optimal Train
 ```{r}
 # Optimize Model for Best K Parameters Using Train Function 
 library(class)
@@ -861,7 +855,7 @@ legend("bottomright", legend = c("Pred. 1 as > 0.1%", "Pred. 0 as < 0.1%"),
 
 Both our train hyper-grid search function and manual grid search show that the optimal number for K parameters (the number of neighboring observations) is 13. In other words, 13 observations closest to our observation of interest will be checked to see whether they identify with class 1 (above 0.1% gold price growth) or class 0 (below 0.1% gold price growth). The majority of these 13 classes will be assigned to the observation of interest. Using this algorithm, we get a mis-classification error (on average) of **41.33%**. This is below 50% and is considered better than random chance. Our manual fit is also similar to running an optimized KNN model on five fold cross validation, so we don't have to run that again. The mis-classification error of 41.33%, thus, is a comparable number to other approaches (as we run five fold cross validation for them). 
 
-### Random Forest & Bagging (Arif)
+### Random Forest & Bagging
 ```{r}
 # Optimize Random Forest Model for Parameters Using Train Function
 library(tree)
@@ -941,7 +935,7 @@ ggsave(file = "~/Desktop/classifrfplot.png", plot = classif.rf.plot, width = 10,
 
 Since our train control function was not working, we decided to run a manual parameter grid search for number of trees (ntrees) and number of features to consider for each tree (mtry). This like the manual knn parameter search is equivalent to testing the random forest model's performance on our five cross validation folds. Thus, the results from this grid search are comparable to other classificaiton models we ran. After running random forests and bagging algorithms on our data set, we find that a random forest with parameters (mtry = 18 and number of trees = 200) is the most optimal in minimizing misclassification errors. It returned a misclassification error of **42.28%** which is slightly higher than our KNN model but still less than 50%. This shows that our model performs better than random chance when it comes to classifying the direction of gold prices month over month, given our 0.1% hurdle rate. Looking at our bagging algorithms (mtry = 22, where we use all predictors in our feature space), their misclassification errors, on average, fell in the range **44.76%-47.42%**. The bagging algorithms were not optimal in our classification setting. 
 
-### Boosting (Arif)
+### Boosting
 ```{r}
 # Conduct Parameter Search for Gradient Boosting Model Using Train Function
 set.seed(75849)
@@ -1009,7 +1003,7 @@ mean(gbm.c.error)
 
 After running five fold cross validation on our classification gradient boosting model, we received a mean misclassification error of **43.06%**. This is better than our classification random forest model, but it does not perform as well as our KNN model. Regardless, our misclassification error is below 50% and is better than random chance. 
 
-### Support Vector Machine (Arif)
+### Support Vector Machine
 
 For support vector machines, there are two main subsets of models that we'd like to explore in our classification task. The first is running support vector machines with polynomial kernels, and the second is running support vector machines with radial kernels. When running support vector machines with polynomial kernels, we'll vary for cost and degree - the latter represents the maximum polynomial transformation of our predictors. For support vector machines with radial kernels, we'll vary for cost and gamma. We'll use the tune function to run a parameter grid search for cost and gamma/degree. If the tune function does not work, we'll run a for loop to run the grid search. In order to compare our support vector machine results to other classification models, we'll run five fold cross-validation. 
 
@@ -1166,88 +1160,91 @@ plot(svm.radial.full, gold.c, PercChangeLag1 ~ FedFundsRate,
 After performing a grid search on cost and gamma parameters for our support vector machine with radial kernels, we find that the most optimal parameter values are a cost parameter of 1 and a gamma parameter of 0.1. These parameter values return a misclassification error of **41.90%**. This edges our polynomial kernels, but it still slightly underperforms our KNN model - though it is the closest among the classification models to the KNN model. 
 
 ### Neural Network
+
+Disclaimer: The neural network models ran on one of our markdown files, but can't on this one. In our final presentation, we added our findings from our neural network model. We won't run it in this document because it won't knit. 
+
 ```{r}
-#py_install("tensorflow")
-library(keras)
-#reticulate::install_miniconda()
-reticulate::py_install("tensorflow")
-reticulate::py_install("keras")
-
-# Define the parameter grid
-layers_grid <- c(1, 2, 3)  # Different numbers of layers
-neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
-
-# Initialize variables to store the best configuration and accuracy
-best_layers <- NULL
-best_neurons <- NULL
-best_accuracy <- 0
-
-# Perform grid search
-for (layers in layers_grid) {
-  for (neurons in neurons_grid) {
-    # Create the sequential model
-    model <- keras_model_sequential()
-    model %>%
-      layer_dense(units = neurons, activation = "relu", input_shape = ncol(gold.c) - 1)
-    for (i in seq(layers - 1)) {
-      model %>%
-        layer_dense(units = neurons, activation = "relu")
-    }
-    model %>%
-      layer_dense(units = 1, activation = "sigmoid")
-
-    # Compile the model
-    model %>% compile(
-      loss = "binary_crossentropy",
-      optimizer = "adam",
-      metrics = c("accuracy")
-    )
-
-    # Train the model
-    history <- model %>% fit(
-      x = as.matrix(gold.c[, -ncol(gold.c)]),
-      y = as.matrix(gold.c$Binary.PercChange),
-      epochs = 10,
-      batch_size = 32,
-      validation_split = 0.2
-    )
-
-    # Calculate the accuracy
-    accuracy <- history$metrics$val_accuracy[length(history$metrics$val_accuracy)]
-
-    # Check if the current configuration is the best so far
-    if (accuracy > best_accuracy) {
-      best_layers <- layers
-      best_neurons <- neurons
-      best_accuracy <- accuracy
-      best_history <- history
-
-    }
-  }
-}
-
-# Print the best configuration and accuracy
-print(paste("Best Layers:", best_layers))
-print(paste("Best Neurons:", best_neurons))
-print(paste("Best Accuracy:", best_accuracy))
-
-# Plot the training history of the best model
-plot(best_history$metrics$accuracy, type = "l", col = "blue", xlab = "Epoch", ylab = "Accuracy",
-     main = "Training History - Best Model")
-lines(best_history$metrics$val_accuracy, col = "red")
-legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"), col = c("blue", "red"), lty = 1)
-
-
-library(pROC)
-
-# Predict probabilities
-y_pred <- model %>% predict(as.matrix(gold.c[, -ncol(gold.c)]))
-
-# Compute ROC curve
-roc_data <- roc(gold.c$Binary.PercChange, y_pred)
-
-# Plot ROC curve
-plot(roc_data, main = "ROC Curve", print.auc = TRUE)
+# #py_install("tensorflow")
+# library(keras)
+# #reticulate::install_miniconda()
+# reticulate::py_install("tensorflow")
+# reticulate::py_install("keras")
+# 
+# # Define the parameter grid
+# layers_grid <- c(1, 2, 3)  # Different numbers of layers
+# neurons_grid <- c(32, 64, 128)  # Different numbers of neurons
+# 
+# # Initialize variables to store the best configuration and accuracy
+# best_layers <- NULL
+# best_neurons <- NULL
+# best_accuracy <- 0
+# 
+# # Perform grid search
+# for (layers in layers_grid) {
+#   for (neurons in neurons_grid) {
+#     # Create the sequential model
+#     model <- keras_model_sequential()
+#     model %>%
+#       layer_dense(units = neurons, activation = "relu", input_shape = ncol(gold.c) - 1)
+#     for (i in seq(layers - 1)) {
+#       model %>%
+#         layer_dense(units = neurons, activation = "relu")
+#     }
+#     model %>%
+#       layer_dense(units = 1, activation = "sigmoid")
+# 
+#     # Compile the model
+#     model %>% compile(
+#       loss = "binary_crossentropy",
+#       optimizer = "adam",
+#       metrics = c("accuracy")
+#     )
+# 
+#     # Train the model
+#     history <- model %>% fit(
+#       x = as.matrix(gold.c[, -ncol(gold.c)]),
+#       y = as.matrix(gold.c$Binary.PercChange),
+#       epochs = 10,
+#       batch_size = 32,
+#       validation_split = 0.2
+#     )
+# 
+#     # Calculate the accuracy
+#     accuracy <- history$metrics$val_accuracy[length(history$metrics$val_accuracy)]
+# 
+#     # Check if the current configuration is the best so far
+#     if (accuracy > best_accuracy) {
+#       best_layers <- layers
+#       best_neurons <- neurons
+#       best_accuracy <- accuracy
+#       best_history <- history
+# 
+#     }
+#   }
+# }
+# 
+# # Print the best configuration and accuracy
+# print(paste("Best Layers:", best_layers))
+# print(paste("Best Neurons:", best_neurons))
+# print(paste("Best Accuracy:", best_accuracy))
+# 
+# # Plot the training history of the best model
+# plot(best_history$metrics$accuracy, type = "l", col = "blue", xlab = "Epoch", ylab = "Accuracy",
+#      main = "Training History - Best Model")
+# lines(best_history$metrics$val_accuracy, col = "red")
+# legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"), col = c("blue", "red"), lty = 1)
+# 
+# 
+# library(pROC)
+# 
+# # Predict probabilities
+# y_pred <- model %>% predict(as.matrix(gold.c[, -ncol(gold.c)]))
+# 
+# # Compute ROC curve
+# roc_data <- roc(gold.c$Binary.PercChange, y_pred)
+# 
+# # Plot ROC curve
+# plot(roc_data, main = "ROC Curve", print.auc = TRUE)
 
 ```
 
