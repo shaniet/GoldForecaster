@@ -5,6 +5,14 @@ date: '2023-06-02'
 output: pdf_document
 ---
 
+# Introduction
+
+We compiled a data set, using features from a variety of sources, in order to build an algorithm that can predict the movement of gold prices on a month to month basis. Our data matrix contains features that theoretically have an effect on gold prices. These features include the federal funds rate, inflation month over month, stock market indices, consumer sentiment, consumer expectations, industry production indices related to gold, financial conditions, total bank reserves, and oil prices. Though this list of features is not comprehensive of all possible factors that affect the prices of gold, we believe they capture certain dynamics. In order to normalize some of these features since some grow continuously (such as bank reserves), we converted them to percent changes. Along with our features, we added lags for percent returns on gold from previous months as well as moving averages. This can capture time dynamics. 
+
+As for our main response variable, we are looking to predict the percent change in gold prices. We were able to make this into a quasi-forecasting problem by re-aligning percent changes in gold from our data. For example, the change in gold prices from January to February (Jan 1st to Jan 31st/Feb 1st) is usually assigned to the month of February. We assigned the percentage change to our January observation and not the month of February. Thus, we were able to forecast percent changes in gold prices. Along with predicting changes in gold, we decided to convert out response variable into a binary classifier for direction. We set the threshold of binary returns at 0.1% (any percent return above 0.1% will be assigned to a class of 1, and everything else to a class of 0).  
+
+By setting these two response variables, we can perform both regression and classification tasks in order to predict the percent returns on gold as well as their directions. We are conducting this project as if we are trying to sell an investment strategy (maximize returns and probabiity of success). Thus improving predictability is more important to us than interpretability. Most of the models we'll be running are highly non-liner and complex. To optimize these models, we'll be running grid searches of hyper parameters and comparing their performance through cross validation. 
+
 # Load Data
 ```{r}
 # Read csv
@@ -497,13 +505,13 @@ parameters.r <- expand.grid(n.trees = c(100,200,500,1000,1500),
                           n.minobsinnode = c(5))
 
 # Fit A Boosting (GBM) Model
-features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
-
-trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc,
-                           method = "gbm", trControl = control,
-                           tuneGrid = parameters.r)
-
-trained.gbm.fit.r$bestTune
+# features.r <- gold.r[, !colnames(gold.r) %in% "PercChangeForc"]
+# 
+# trained.gbm.fit.r <- train(x = features.r, y = gold.r$PercChangeForc,
+#                            method = "gbm", trControl = control,
+#                            tuneGrid = parameters.r)
+# 
+# trained.gbm.fit.r$bestTune
 
 # Output:
 
@@ -919,7 +927,7 @@ rf.perf.df[rf_min_rn,]
 rf.mdl.pres.try <- randomForest(as.factor(Binary.PercChange) ~.,
                              data = gold.c, mtry = 18,
                              ntree = 200, importance = TRUE) 
-varImpPlot(rf.mdl.pres, cex = 0.55, main = "Random Forest Variable Importance") 
+# varImpPlot(rf.mdl.pres, cex = 0.55, main = "Random Forest Variable Importance") 
 
 # Grid Plot of MSE Performance through Five Fold
 classif.rf.plot <- ggplot(rf.perf.df, aes(x = `Mtry Parameters`, y = `Number of Trees`,size = `FF CV Errors`))+geom_point(col = "navy")+
@@ -1353,8 +1361,11 @@ pROC::auc(roc_gbm)
 pROC::auc(roc_svm) 
 ```
 
+# Conclusion: 
 
+Most of our models were highly non-linear and uninterpretable in our regression and classification tasks. Overall our neural network models outperformed the other models in RMSE (regression) and overall accuracy (classification). Our regression results were not deployable. On average, our models predicted returns that were about 3-4 percentage points off observed values. This could be very costly for investors we pitch our algorithm to. As for predicting the direction of gold prices on a month to month basis, our machine learnings algorithms outperformed classification benchmarks (dominant class proportions, random chance classification, etc.). The ROC curves of our classification algorithms returned deployable AUC values which tested our alogrithms on different threshold values. 
 
+In conclusion, though we do not recommend our algorithms for predicting the returns of gold prices, we will look into further bettering our algorithms for predicting the direction of gold prices. One potential future project could be looking into creating a "majority vote" decision between multiple different machine learnings models in order to classify return direction. 
 
 
 
